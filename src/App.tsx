@@ -7,8 +7,11 @@ import { PlaylistsPage } from './pages/PlaylistsPage';
 import { SongDetailPage } from './pages/SongDetailPage';
 
 export function App() {
+  const basename =
+    import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<LibraryPage />} />

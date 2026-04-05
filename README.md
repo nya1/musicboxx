@@ -33,6 +33,14 @@ npm run preview
 
 Deploy the **`dist/`** folder to any static host (e.g. Vercel, Netlify, GitHub Pages). The PWA registers a service worker from the build output for offline shell caching.
 
+### GitHub Pages (GitHub Actions)
+
+This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml), which builds on every push to **`main`** and publishes `dist/` to GitHub Pages.
+
+1. In the GitHub repo: **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions** (not “Deploy from a branch”).
+2. Push to `main` (or run the workflow manually under **Actions**). The workflow sets `VITE_BASE` to `/<repository-name>/`, which matches **project** Pages URLs (`https://<owner>.github.io/<repo>/`).
+3. For a **user or organization** site (`<user>.github.io` with the site at the domain root) or a **custom domain** at `/`, override the build: set `VITE_BASE=/` in the workflow’s build step (or use a repository variable and wire it into that step) so asset URLs stay at the root.
+
 ## Tech stack
 
 - [Vite](https://vitejs.dev/) + [React](https://react.dev/) + TypeScript  
