@@ -15,4 +15,4 @@
 ## 4. Verification
 
 - [x] 4.1 Run `npm run build` locally with `VITE_BASE=/<repo>/` (or the chosen env name) and confirm `dist/index.html` references prefixed asset paths.
-- [ ] 4.2 After merge, confirm the workflow run succeeds and the live Pages URL loads the app without broken assets (manual check in browser).
+- [x] 4.2 After merge, confirm the workflow run succeeds and the live Pages URL loads the app without broken assets (manual check in browser).

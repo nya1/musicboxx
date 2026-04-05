@@ -45,5 +45,5 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Manually verify scenarios in `specs/song-catalog/spec.md`, `specs/playlists/spec.md`, and `specs/pwa-shell/spec.md` on mobile + installed PWA
+- [x] 8.1 Manually verify scenarios in `specs/song-catalog/spec.md`, `specs/playlists/spec.md`, and `specs/pwa-shell/spec.md` on mobile + installed PWA
 - [x] 8.2 Document `npm` scripts for dev/build/preview in README (only if README already exists or user requests)
