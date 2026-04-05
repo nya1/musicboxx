@@ -1,0 +1,131 @@
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Link, useParams } from 'react-router-dom';
+import {
+  addSongToPlaylist,
+  db,
+  FAVORITES_PLAYLIST_ID,
+  removeSongFromPlaylist,
+} from '../db';
+import { SongThumbnail } from '../components/SongThumbnail';
+import { youtubeWatchUrl } from '../lib/youtube';
+
+export function SongDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const songId = id ? parseInt(id, 10) : NaN;
+
+  const bundle = useLiveQuery(
+    async () => {
+      if (!Number.isFinite(songId)) {
+        return { song: undefined, playlists: [], memberships: [] as string[] };
+      }
+      const song = await db.songs.get(songId);
+      const playlists = await db.playlists.orderBy('createdAt').toArray();
+      const memberRows = await db.playlistSongs.where('songId').equals(songId).toArray();
+      const memberships = memberRows.map((r) => r.playlistId);
+      return { song, playlists, memberships };
+    },
+    [songId]
+  );
+
+  if (!bundle) {
+    return <p className="muted">Loading…</p>;
+  }
+
+  const { song, playlists, memberships } = bundle;
+
+  if (!song) {
+    return (
+      <div className="empty-state">
+        <p>Song not found.</p>
+        <Link to="/">Back to library</Link>
+      </div>
+    );
+  }
+
+  const watch = youtubeWatchUrl(song.videoId);
+  const addable = playlists.filter((p) => !memberships.includes(p.id));
+
+  return (
+    <div>
+      <Link to="/" className="back-link">
+        ← Library
+      </Link>
+      <article className="song-detail">
+        <SongThumbnail
+          videoId={song.videoId}
+          alt={`Thumbnail for ${song.title}`}
+          className="song-detail__cover"
+        />
+        <h1 className="song-detail__title">{song.title}</h1>
+        {song.author ? <p className="song-detail__author muted">{song.author}</p> : null}
+        <div className="song-detail__actions stack">
+          <a
+            className="btn btn--primary"
+            href={watch}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${song.title} on YouTube (opens in a new tab)`}
+          >
+            Open in YouTube
+          </a>
+        </div>
+      </article>
+
+      <section className="mt-lg" aria-labelledby="in-playlists-heading">
+        <h2 id="in-playlists-heading" className="section-title">
+          In playlists
+        </h2>
+        {memberships.length === 0 ? (
+          <p className="muted">Not in any playlist.</p>
+        ) : (
+          <ul className="membership-list" role="list">
+            {memberships.map((pid) => {
+              const pl = playlists.find((p) => p.id === pid);
+              if (!pl) return null;
+              return (
+                <li key={pid} className="membership-row">
+                  <Link to={`/playlist/${pid}`}>{pl.name}</Link>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--small"
+                    aria-label={`Remove ${song.title} from ${pl.name}`}
+                    onClick={() => removeSongFromPlaylist(pid, song.id!)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {addable.length > 0 ? (
+        <section className="mt-lg" aria-labelledby="add-to-heading">
+          <h2 id="add-to-heading" className="section-title">
+            Add to playlist
+          </h2>
+          <ul className="add-to-list" role="list">
+            {addable.map((pl) => (
+              <li key={pl.id}>
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--block"
+                  aria-label={`Add ${song.title} to ${pl.name}`}
+                  onClick={() => addSongToPlaylist(pl.id, song.id!)}
+                >
+                  Add to {pl.name}
+                  {pl.id === FAVORITES_PLAYLIST_ID ? (
+                    <span className="sr-only"> (default)</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <p className="muted mt-lg">This song is already in all of your playlists.</p>
+      )}
+    </div>
+  );
+}
