@@ -8,6 +8,7 @@ import {
   removeSongFromPlaylist,
 } from '../db';
 import { SongThumbnail } from '../components/SongThumbnail';
+import { geniusSearchUrl } from '../lib/geniusSearch';
 import { spotifyOpenUrl } from '../lib/spotify';
 import { youtubeWatchUrl } from '../lib/youtube';
 
@@ -65,6 +66,8 @@ export function SongDetailPage() {
       : song.provider === 'apple-music'
         ? `Open ${song.title} on Apple Music (opens in a new tab)`
         : `Open ${song.title} on YouTube (opens in a new tab)`;
+  const geniusUrl = geniusSearchUrl(song.title, song.author);
+  const geniusAria = `Find lyrics for ${song.title} on Genius search (opens in a new tab)`;
   const addable = playlists
     .filter((p) => !memberships.includes(p.id))
     .sort((a, b) =>
@@ -96,6 +99,17 @@ export function SongDetailPage() {
               aria-label={openAria}
             >
               {openLabel}
+            </a>
+          ) : null}
+          {geniusUrl ? (
+            <a
+              className="btn btn--secondary"
+              href={geniusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={geniusAria}
+            >
+              Find lyrics on Genius
             </a>
           ) : null}
         </div>
