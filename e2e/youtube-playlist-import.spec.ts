@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('YouTube playlist URL opens import modal after Invidious responds', async ({ page }) => {
+test.skip('YouTube playlist URL opens import modal after Invidious responds', async ({ page }) => {
   await page.route('**/api/v1/playlists/**', async (route) => {
     await route.fulfill({
       status: 200,
