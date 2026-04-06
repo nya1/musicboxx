@@ -26,7 +26,7 @@ export const PLAYLIST_ACCENT_PALETTE = [
   '#2563eb',
 ] as const;
 
-const DEFAULT_PLAYLIST_SETTING_KEY = 'defaultPlaylistId';
+export const DEFAULT_PLAYLIST_SETTING_KEY = 'defaultPlaylistId';
 
 /** Picks a uniformly random accent from the palette for each new playlist. */
 export function pickRandomPlaylistColor(): string {
@@ -132,8 +132,8 @@ export class MusicboxxDB extends Dexie {
   playlistSongs!: Table<PlaylistSong, [string, number]>;
   settings!: Table<AppSetting, string>;
 
-  constructor() {
-    super('musicboxx');
+  constructor(dbName = 'musicboxx') {
+    super(dbName);
     this.version(1).stores({
       songs: '++id, videoId, createdAt',
       playlists: 'id, name, isSystem, createdAt',
@@ -312,10 +312,10 @@ export async function getDirectMemberSongIds(playlistId: string): Promise<Set<nu
   return new Set(rows.map((r) => r.songId));
 }
 
-export async function bootstrapDb(): Promise<void> {
-  const n = await db.playlists.count();
+export async function bootstrapDb(database: MusicboxxDB = db): Promise<void> {
+  const n = await database.playlists.count();
   if (n === 0) {
-    await db.playlists.add({
+    await database.playlists.add({
       id: FAVORITES_PLAYLIST_ID,
       name: 'Favorites',
       isSystem: true,
@@ -323,9 +323,9 @@ export async function bootstrapDb(): Promise<void> {
       color: FAVORITES_PLAYLIST_COLOR,
     });
   }
-  const setting = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
+  const setting = await database.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
   if (!setting) {
-    await db.settings.put({
+    await database.settings.put({
       key: DEFAULT_PLAYLIST_SETTING_KEY,
       value: FAVORITES_PLAYLIST_ID,
     });

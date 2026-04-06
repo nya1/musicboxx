@@ -51,8 +51,7 @@ This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflo
 
 ## Roadmap
 
-- Backup local database
-- Export local database
+- Backup/sync to cloud
 - Share playlist
 
 

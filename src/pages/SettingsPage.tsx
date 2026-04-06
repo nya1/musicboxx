@@ -1,6 +1,91 @@
+import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Modal } from '../components/Modal';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { db } from '../db';
+import {
+  downloadLibraryExportFile,
+  exportLibrarySnapshot,
+  importLibraryReplace,
+  validateImportDocument,
+  type LibraryExportDocument,
+} from '../lib/libraryExportImport';
 
 export function SettingsPage() {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<LibraryExportDocument | null>(null);
+  const [importWorking, setImportWorking] = useState(false);
+  const [exportWorking, setExportWorking] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  async function handleExport() {
+    setStatusMessage(null);
+    setExportWorking(true);
+    try {
+      const snap = await exportLibrarySnapshot(db);
+      downloadLibraryExportFile(snap);
+      setStatusMessage({ kind: 'success', text: 'Export downloaded.' });
+    } catch (e) {
+      setStatusMessage({
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Export failed.',
+      });
+    } finally {
+      setExportWorking(false);
+    }
+  }
+
+  function openImportPicker() {
+    setStatusMessage(null);
+    fileInputRef.current?.click();
+  }
+
+  async function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setStatusMessage(null);
+    try {
+      const text = await file.text();
+      const raw: unknown = JSON.parse(text);
+      const v = validateImportDocument(raw);
+      if (!v.ok) {
+        setStatusMessage({ kind: 'error', text: v.error });
+        return;
+      }
+      setPendingImport(v.document);
+      setImportConfirmOpen(true);
+    } catch {
+      setStatusMessage({ kind: 'error', text: 'Could not read or parse the file.' });
+    }
+  }
+
+  function closeImportModal() {
+    if (importWorking) return;
+    setImportConfirmOpen(false);
+    setPendingImport(null);
+  }
+
+  async function confirmImport() {
+    if (!pendingImport) return;
+    setImportWorking(true);
+    try {
+      await importLibraryReplace(db, pendingImport);
+      setImportConfirmOpen(false);
+      setPendingImport(null);
+      navigate('/', { replace: true });
+    } catch (e) {
+      setStatusMessage({
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Import failed.',
+      });
+    } finally {
+      setImportWorking(false);
+    }
+  }
+
   return (
     <div>
       <h1 className="page-title">Settings</h1>
@@ -23,19 +108,61 @@ export function SettingsPage() {
           Library data
         </h2>
         <p className="muted settings-data-lead">
-          Cloud backup to an external destination and full import or export of your local
-          library (IndexedDB) are planned. Until then, your collection stays in this browser
-          only.
+          Export a JSON backup of your library, or import a file you exported from Musicboxx on this or another
+          device. Export first if you need a copy before replacing data. Cloud backup is not available yet.
         </p>
+        {statusMessage ? (
+          <p
+            className={statusMessage.kind === 'error' ? 'form-error' : 'muted'}
+            role={statusMessage.kind === 'error' ? 'alert' : 'status'}
+          >
+            {statusMessage.text}
+          </p>
+        ) : null}
         <div className="stack settings-data-actions">
           <button type="button" className="btn btn--secondary" disabled>
             Back up library…
           </button>
-          <button type="button" className="btn btn--secondary" disabled>
-            Export or import data…
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={handleExport}
+            disabled={exportWorking}
+            aria-busy={exportWorking}
+          >
+            {exportWorking ? 'Exporting…' : 'Export library…'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={onImportFileChange}
+          />
+          <button type="button" className="btn btn--secondary" onClick={openImportPicker}>
+            Import library…
           </button>
         </div>
       </section>
+
+      <Modal isOpen={importConfirmOpen} onClose={closeImportModal} title="Replace library data?">
+        <div className="stack">
+          <p>
+            This will <strong>replace</strong> all songs and playlists in this browser with the contents of the
+            backup file. This cannot be undone. Export your current library first if you need a copy.
+          </p>
+          <div className="modal-panel__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeImportModal} disabled={importWorking}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn--danger" onClick={confirmImport} disabled={importWorking}>
+              {importWorking ? 'Importing…' : 'Replace library'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
