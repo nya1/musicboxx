@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md](https://agents.md/).
+Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md](https://agents.md/). Always keep this document updated with relevant information or instructions that are useful for agents.
 
 ## Project overview
 

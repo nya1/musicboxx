@@ -6,6 +6,7 @@ import {
   db,
   FAVORITES_PLAYLIST_ID,
   getChildPlaylistsSorted,
+  getDefaultPlaylistId,
   getDirectMemberSongIds,
   getPlaylistAncestors,
   getSongsInPlaylistSubtreeDeduped,
@@ -31,6 +32,7 @@ export function PlaylistDetailPage() {
           directMemberIds: new Set<number>(),
           children: [] as Playlist[],
           ancestors: [] as Playlist[],
+          defaultPlaylistId: FAVORITES_PLAYLIST_ID,
         };
       }
       const playlist = await db.playlists.get(playlistId);
@@ -41,16 +43,18 @@ export function PlaylistDetailPage() {
           directMemberIds: new Set<number>(),
           children: [] as Playlist[],
           ancestors: [] as Playlist[],
+          defaultPlaylistId: FAVORITES_PLAYLIST_ID,
         };
       }
       const allPlaylists = await db.playlists.orderBy('createdAt').toArray();
-      const [songs, directMemberIds] = await Promise.all([
+      const [songs, directMemberIds, defaultPlaylistId] = await Promise.all([
         getSongsInPlaylistSubtreeDeduped(playlistId),
         getDirectMemberSongIds(playlistId),
+        getDefaultPlaylistId(),
       ]);
       const children = getChildPlaylistsSorted(playlistId, allPlaylists);
       const ancestors = getPlaylistAncestors(playlist, allPlaylists);
-      return { playlist, songs, directMemberIds, children, ancestors };
+      return { playlist, songs, directMemberIds, children, ancestors, defaultPlaylistId };
     },
     [playlistId]
   );
@@ -59,7 +63,7 @@ export function PlaylistDetailPage() {
     return <p className="muted">Loading…</p>;
   }
 
-  const { playlist, songs, directMemberIds, children, ancestors } = data;
+  const { playlist, songs, directMemberIds, children, ancestors, defaultPlaylistId } = data;
 
   if (!playlist) {
     return (
@@ -70,6 +74,7 @@ export function PlaylistDetailPage() {
     );
   }
 
+  const isDefaultPlaylist = playlist.id === defaultPlaylistId;
   const isFavorites = playlist.id === FAVORITES_PLAYLIST_ID;
   const hasChildren = children.length > 0;
   const hasSongs = songs.length > 0;
@@ -99,7 +104,7 @@ export function PlaylistDetailPage() {
       <div className="page-title-row">
         <h1 className="page-title page-title--with-action">
           {playlist.name}
-          {isFavorites ? <span className="badge badge--inline">Default</span> : null}
+          {isDefaultPlaylist ? <span className="badge badge--inline">Default</span> : null}
         </h1>
         <button
           type="button"

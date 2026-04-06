@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import {
   addSongToPlaylist,
   db,
-  FAVORITES_PLAYLIST_ID,
   formatPlaylistPath,
+  getDefaultPlaylistId,
   removeSongFromPlaylist,
 } from '../db';
 import { SongThumbnail } from '../components/SongThumbnail';
@@ -17,13 +17,14 @@ export function SongDetailPage() {
   const bundle = useLiveQuery(
     async () => {
       if (!Number.isFinite(songId)) {
-        return { song: undefined, playlists: [], memberships: [] as string[] };
+        return { song: undefined, playlists: [], memberships: [] as string[], defaultPlaylistId: '' };
       }
       const song = await db.songs.get(songId);
       const playlists = await db.playlists.orderBy('createdAt').toArray();
       const memberRows = await db.playlistSongs.where('songId').equals(songId).toArray();
       const memberships = memberRows.map((r) => r.playlistId);
-      return { song, playlists, memberships };
+      const defaultPlaylistId = await getDefaultPlaylistId();
+      return { song, playlists, memberships, defaultPlaylistId };
     },
     [songId]
   );
@@ -32,7 +33,7 @@ export function SongDetailPage() {
     return <p className="muted">Loading…</p>;
   }
 
-  const { song, playlists, memberships } = bundle;
+  const { song, playlists, memberships, defaultPlaylistId } = bundle;
 
   if (!song) {
     return (
@@ -125,7 +126,7 @@ export function SongDetailPage() {
                     onClick={() => addSongToPlaylist(pl.id, song.id!)}
                   >
                     Add to {label}
-                    {pl.id === FAVORITES_PLAYLIST_ID ? (
+                    {pl.id === defaultPlaylistId ? (
                       <span className="sr-only"> (default)</span>
                     ) : null}
                   </button>

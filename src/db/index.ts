@@ -2,6 +2,23 @@ import Dexie, { type Table } from 'dexie';
 
 export const FAVORITES_PLAYLIST_ID = 'favorites';
 
+const DEFAULT_PLAYLIST_SETTING_KEY = 'defaultPlaylistId';
+
+export interface AppSetting {
+  key: string;
+  value: string;
+}
+
+export class PlaylistDeleteError extends Error {
+  constructor(
+    message: string,
+    public readonly code: 'system_playlist' | 'has_children'
+  ) {
+    super(message);
+    this.name = 'PlaylistDeleteError';
+  }
+}
+
 export interface Song {
   id?: number;
   videoId: string;
@@ -44,6 +61,7 @@ export class MusicboxxDB extends Dexie {
   songs!: Table<Song, number>;
   playlists!: Table<Playlist, string>;
   playlistSongs!: Table<PlaylistSong, [string, number]>;
+  settings!: Table<AppSetting, string>;
 
   constructor() {
     super('musicboxx');
@@ -57,6 +75,19 @@ export class MusicboxxDB extends Dexie {
       playlists: 'id, name, isSystem, createdAt, parentId',
       playlistSongs: '[playlistId+songId], playlistId, songId',
     });
+    this.version(3)
+      .stores({
+        songs: '++id, videoId, createdAt',
+        playlists: 'id, name, isSystem, createdAt, parentId',
+        playlistSongs: '[playlistId+songId], playlistId, songId',
+        settings: 'key',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('settings').put({
+          key: DEFAULT_PLAYLIST_SETTING_KEY,
+          value: FAVORITES_PLAYLIST_ID,
+        });
+      });
   }
 }
 
@@ -193,6 +224,106 @@ export async function bootstrapDb(): Promise<void> {
       createdAt: Date.now(),
     });
   }
+  const setting = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
+  if (!setting) {
+    await db.settings.put({
+      key: DEFAULT_PLAYLIST_SETTING_KEY,
+      value: FAVORITES_PLAYLIST_ID,
+    });
+  }
+}
+
+/** Playlist id that receives new songs from `addSongFromVideoId` (falls back if setting missing or stale). */
+export async function getDefaultPlaylistId(): Promise<string> {
+  const row = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
+  const id = row?.value;
+  if (id) {
+    const pl = await db.playlists.get(id);
+    if (pl) return id;
+  }
+  return FAVORITES_PLAYLIST_ID;
+}
+
+export async function setDefaultPlaylist(playlistId: string): Promise<void> {
+  const pl = await db.playlists.get(playlistId);
+  if (!pl) {
+    throw new Error('Playlist not found.');
+  }
+  await db.settings.put({ key: DEFAULT_PLAYLIST_SETTING_KEY, value: playlistId });
+}
+
+export async function renamePlaylist(playlistId: string, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error('Enter a playlist name.');
+  }
+  const pl = await db.playlists.get(playlistId);
+  if (!pl) {
+    throw new Error('Playlist not found.');
+  }
+  await db.playlists.update(playlistId, { name: trimmed });
+}
+
+export async function movePlaylist(playlistId: string, newParentId: string | null): Promise<void> {
+  const pl = await db.playlists.get(playlistId);
+  if (!pl) {
+    throw new Error('Playlist not found.');
+  }
+  const parentId = newParentId ?? undefined;
+  await validateParentAssignment(playlistId, parentId);
+  if (parentId === undefined) {
+    const next: Playlist = { ...pl };
+    delete next.parentId;
+    await db.playlists.put(next);
+  } else {
+    await db.playlists.update(playlistId, { parentId });
+  }
+}
+
+/**
+ * Valid parent ids for moving `playlistId` (excluding self and descendants). `null` = top level.
+ * Empty for **Favorites** (it cannot be nested under another playlist).
+ */
+export function getValidMoveParentIds(playlistId: string, allPlaylists: Playlist[]): (string | null)[] {
+  if (playlistId === FAVORITES_PLAYLIST_ID) {
+    return [];
+  }
+  const forbidden = getDescendantPlaylistIds(playlistId, allPlaylists);
+  const out: (string | null)[] = [];
+  out.push(null);
+  for (const p of allPlaylists) {
+    if (forbidden.has(p.id)) continue;
+    if (p.id === playlistId) continue;
+    out.push(p.id);
+  }
+  return out;
+}
+
+export async function deletePlaylist(playlistId: string): Promise<void> {
+  const pl = await db.playlists.get(playlistId);
+  if (!pl) {
+    throw new Error('Playlist not found.');
+  }
+  if (pl.isSystem || playlistId === FAVORITES_PLAYLIST_ID) {
+    throw new PlaylistDeleteError('This playlist cannot be deleted.', 'system_playlist');
+  }
+  const all = await db.playlists.toArray();
+  const hasChildren = all.some((p) => p.parentId === playlistId);
+  if (hasChildren) {
+    throw new PlaylistDeleteError(
+      'Move or delete sub-playlists first before deleting this playlist.',
+      'has_children'
+    );
+  }
+
+  await db.transaction('rw', db.playlists, db.playlistSongs, db.settings, async () => {
+    const row = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
+    if (row?.value === playlistId) {
+      await db.settings.put({ key: DEFAULT_PLAYLIST_SETTING_KEY, value: FAVORITES_PLAYLIST_ID });
+    }
+    await db.playlistSongs.where('playlistId').equals(playlistId).delete();
+    await db.playlists.delete(playlistId);
+  });
 }
 
 export async function getSongByVideoId(videoId: string): Promise<Song | undefined> {
@@ -274,9 +405,10 @@ export async function addSongFromVideoId(
     createdAt: Date.now(),
   };
 
+  const defaultPl = await getDefaultPlaylistId();
   const id = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
     const newId = await db.songs.add(song);
-    await addSongToPlaylist(FAVORITES_PLAYLIST_ID, newId as number);
+    await addSongToPlaylist(defaultPl, newId as number);
     return newId as number;
   });
 
