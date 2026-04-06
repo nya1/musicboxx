@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { siApplemusic, siGenius, siSpotify, siYoutube } from 'simple-icons';
 import {
   addSongToPlaylist,
   db,
+  deleteSongFromLibrary,
   formatPlaylistPath,
   getDefaultPlaylistId,
   removeSongFromPlaylist,
@@ -16,6 +17,7 @@ import { youtubeWatchUrl } from '../lib/youtube';
 
 export function SongDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const songId = id ? parseInt(id, 10) : NaN;
 
   const bundle = useLiveQuery(
@@ -48,32 +50,34 @@ export function SongDetailPage() {
     );
   }
 
+  const songRecord = song;
+
   const openUrl =
-    song.provider === 'youtube' && song.videoId
-      ? youtubeWatchUrl(song.videoId)
-      : song.provider === 'spotify' && song.spotifyTrackId
-        ? spotifyOpenUrl(song.spotifyTrackId)
-        : song.provider === 'apple-music' && song.appleMusicOpenUrl
-          ? song.appleMusicOpenUrl
+    songRecord.provider === 'youtube' && songRecord.videoId
+      ? youtubeWatchUrl(songRecord.videoId)
+      : songRecord.provider === 'spotify' && songRecord.spotifyTrackId
+        ? spotifyOpenUrl(songRecord.spotifyTrackId)
+        : songRecord.provider === 'apple-music' && songRecord.appleMusicOpenUrl
+          ? songRecord.appleMusicOpenUrl
           : null;
   const openLabel =
-    song.provider === 'spotify'
+    songRecord.provider === 'spotify'
       ? 'Open in Spotify'
-      : song.provider === 'apple-music'
+      : songRecord.provider === 'apple-music'
         ? 'Open in Apple Music'
         : 'Open in YouTube';
   const openAria =
-    song.provider === 'spotify'
-      ? `Open ${song.title} on Spotify (opens in a new tab)`
-      : song.provider === 'apple-music'
-        ? `Open ${song.title} on Apple Music (opens in a new tab)`
-        : `Open ${song.title} on YouTube (opens in a new tab)`;
-  const geniusUrl = geniusSearchUrl(song.title, song.author);
-  const geniusAria = `Find lyrics for ${song.title} on Genius search (opens in a new tab)`;
+    songRecord.provider === 'spotify'
+      ? `Open ${songRecord.title} on Spotify (opens in a new tab)`
+      : songRecord.provider === 'apple-music'
+        ? `Open ${songRecord.title} on Apple Music (opens in a new tab)`
+        : `Open ${songRecord.title} on YouTube (opens in a new tab)`;
+  const geniusUrl = geniusSearchUrl(songRecord.title, songRecord.author);
+  const geniusAria = `Find lyrics for ${songRecord.title} on Genius search (opens in a new tab)`;
   const openBrandIcon =
-    song.provider === 'spotify'
+    songRecord.provider === 'spotify'
       ? siSpotify
-      : song.provider === 'apple-music'
+      : songRecord.provider === 'apple-music'
         ? siApplemusic
         : siYoutube;
   const addable = playlists
@@ -84,6 +88,16 @@ export function SongDetailPage() {
       })
     );
 
+  async function onDeleteFromLibrary() {
+    if (songRecord.id == null) return;
+    const ok = window.confirm(
+      `Remove “${songRecord.title}” from your library? This cannot be undone.`
+    );
+    if (!ok) return;
+    await deleteSongFromLibrary(songRecord.id);
+    navigate('/');
+  }
+
   return (
     <div>
       <Link to="/" className="back-link">
@@ -91,12 +105,12 @@ export function SongDetailPage() {
       </Link>
       <article className="song-detail">
         <SongThumbnail
-          song={song}
-          alt={`Thumbnail for ${song.title}`}
+          song={songRecord}
+          alt={`Thumbnail for ${songRecord.title}`}
           className="song-detail__cover"
         />
-        <h1 className="song-detail__title">{song.title}</h1>
-        {song.author ? <p className="song-detail__author muted">{song.author}</p> : null}
+        <h1 className="song-detail__title">{songRecord.title}</h1>
+        {songRecord.author ? <p className="song-detail__author muted">{songRecord.author}</p> : null}
         <div className="song-detail__actions stack">
           {openUrl ? (
             <a
@@ -143,8 +157,8 @@ export function SongDetailPage() {
                   <button
                     type="button"
                     className="btn btn--ghost btn--small"
-                    aria-label={`Remove ${song.title} from ${label}`}
-                    onClick={() => removeSongFromPlaylist(pid, song.id!)}
+                    aria-label={`Remove ${songRecord.title} from ${label}`}
+                    onClick={() => removeSongFromPlaylist(pid, songRecord.id!)}
                   >
                     Remove
                   </button>
@@ -168,8 +182,8 @@ export function SongDetailPage() {
                   <button
                     type="button"
                     className="btn btn--secondary btn--block"
-                    aria-label={`Add ${song.title} to ${label}`}
-                    onClick={() => addSongToPlaylist(pl.id, song.id!)}
+                    aria-label={`Add ${songRecord.title} to ${label}`}
+                    onClick={() => addSongToPlaylist(pl.id, songRecord.id!)}
                   >
                     Add to {label}
                     {pl.id === defaultPlaylistId ? (
@@ -184,6 +198,24 @@ export function SongDetailPage() {
       ) : (
         <p className="muted mt-lg">This song is already in all of your playlists.</p>
       )}
+
+      <section className="mt-lg" aria-labelledby="delete-song-heading">
+        <h2 id="delete-song-heading" className="section-title">
+          Delete from library
+        </h2>
+        <p className="muted">
+          {memberships.length === 0
+            ? 'This song is not in any playlist. You can remove it from your library permanently.'
+            : 'Remove this track from all playlists and delete it from your library.'}
+        </p>
+        <button
+          type="button"
+          className="btn btn--danger"
+          onClick={() => void onDeleteFromLibrary()}
+        >
+          Delete from library
+        </button>
+      </section>
     </div>
   );
 }

@@ -482,6 +482,17 @@ export async function removeSongFromPlaylist(playlistId: string, songId: number)
     .delete();
 }
 
+/** Removes all playlist links for the song, then deletes the song row (including when it had no links). */
+export async function deleteSongFromLibrary(
+  songId: number,
+  database: MusicboxxDB = db
+): Promise<void> {
+  await database.transaction('rw', database.songs, database.playlistSongs, async () => {
+    await database.playlistSongs.where('songId').equals(songId).delete();
+    await database.songs.delete(songId);
+  });
+}
+
 export async function createPlaylist(name: string, parentId?: string): Promise<Playlist> {
   const id =
     typeof crypto !== 'undefined' && crypto.randomUUID
