@@ -145,6 +145,18 @@ function parsePlaylist(x: unknown, index: number): Playlist | string {
     }
     pl.parentId = x.parentId;
   }
+  if (x.youtubePlaylistId !== undefined) {
+    if (typeof x.youtubePlaylistId !== 'string' || x.youtubePlaylistId.length === 0) {
+      return `Playlist at index ${index} has invalid youtubePlaylistId.`;
+    }
+    pl.youtubePlaylistId = x.youtubePlaylistId;
+  }
+  if (x.youtubePlaylistUrl !== undefined) {
+    if (typeof x.youtubePlaylistUrl !== 'string' || x.youtubePlaylistUrl.length === 0) {
+      return `Playlist at index ${index} has invalid youtubePlaylistUrl.`;
+    }
+    pl.youtubePlaylistUrl = x.youtubePlaylistUrl;
+  }
   return pl;
 }
 

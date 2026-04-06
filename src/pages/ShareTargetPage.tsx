@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { addSongFromParsed } from '../db';
-import { parseMusicFromSharePayload } from '../lib/music';
+import { parseAddMusicFromSharePayload } from '../lib/music';
 
 /**
  * Handles Web Share Target GET launches (see manifest `share_target`).
@@ -23,7 +23,7 @@ export function ShareTargetPage() {
     let cancelled = false;
 
     async function run() {
-      const parsed = parseMusicFromSharePayload(url, text);
+      const parsed = parseAddMusicFromSharePayload(url, text);
       if (!parsed) {
         setError(
           'That doesn’t look like a supported YouTube, Spotify, or Apple Music track link.'
@@ -32,7 +32,12 @@ export function ShareTargetPage() {
         return;
       }
 
-      const result = await addSongFromParsed(parsed);
+      if (parsed.kind === 'youtube-playlist') {
+        navigate(`/add?ytPlaylist=${encodeURIComponent(parsed.playlistId)}`, { replace: true });
+        return;
+      }
+
+      const result = await addSongFromParsed(parsed.parsed);
       if (cancelled) return;
 
       if (!result.ok) {

@@ -202,6 +202,69 @@ a:hover {
   max-width: 280px;
 }
 
+.settings-advanced {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: var(--radius);
+  padding: 0 14px 14px;
+  background: var(--bg-muted, transparent);
+}
+
+.settings-advanced > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 12px 0 10px;
+  margin: 0 -2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-advanced > summary::after {
+  content: '';
+  flex-shrink: 0;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.settings-advanced[open] > summary {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+  margin-bottom: 12px;
+}
+
+.settings-advanced[open] > summary::after {
+  transform: rotate(45deg);
+  margin-top: 2px;
+}
+
+.settings-advanced__body {
+  padding-top: 2px;
+}
+
+.settings-advanced__body .settings-data-lead {
+  margin-top: 0;
+}
+
+.settings-advanced__fields {
+  max-width: 28rem;
+}
+
 .bottom-nav__link:hover {
   text-decoration: none;
   color: var(--text);

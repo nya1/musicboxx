@@ -10,6 +10,44 @@ function validateId(raw: string | undefined): string | null {
 /**
  * Extract YouTube video ID from a pasted URL or raw 11-char id.
  */
+const PLAYLIST_LIST_PARAM_RE = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * If the input is a YouTube URL with a `list=` playlist id, return that id and a canonical playlist URL.
+ * Checked before single-video parsing so `watch?v=…&list=…` becomes a playlist import.
+ */
+export function parseYouTubePlaylistFromInput(input: string): {
+  playlistId: string;
+  canonicalUrl: string;
+} | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const tryUrl = (href: string): { playlistId: string; canonicalUrl: string } | null => {
+    try {
+      const u = new URL(href);
+      const host = u.hostname.replace(/^www\./, '');
+      const youtubeHosts = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
+      const isYt = youtubeHosts.some((h) => host === h || host.endsWith(`.${h}`));
+      if (!isYt) return null;
+      const list = u.searchParams.get('list');
+      if (!list || !PLAYLIST_LIST_PARAM_RE.test(list)) return null;
+      return {
+        playlistId: list,
+        canonicalUrl: `https://www.youtube.com/playlist?list=${encodeURIComponent(list)}`,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return tryUrl(trimmed);
+  }
+
+  return tryUrl(`https://${trimmed}`);
+}
+
 export function parseYouTubeVideoId(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;

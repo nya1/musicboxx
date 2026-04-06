@@ -1,4 +1,9 @@
 import Dexie, { type Table } from 'dexie';
+import {
+  DEFAULT_INVIDIOUS_BASE_URL,
+  INVIDIOUS_BASE_URL_SETTING_KEY,
+  normalizeInvidiousBaseUrl,
+} from '../lib/invidious';
 import { type ParsedMusic, songCatalogKey } from '../lib/music';
 import { fetchAppleMusicMetadata } from '../lib/appleMusic';
 import { normalizePrimaryArtist } from '../lib/songMetadata';
@@ -27,6 +32,8 @@ export const PLAYLIST_ACCENT_PALETTE = [
 ] as const;
 
 export const DEFAULT_PLAYLIST_SETTING_KEY = 'defaultPlaylistId';
+
+export { DEFAULT_INVIDIOUS_BASE_URL, INVIDIOUS_BASE_URL_SETTING_KEY } from '../lib/invidious';
 
 /** Picks a uniformly random accent from the palette for each new playlist. */
 export function pickRandomPlaylistColor(): string {
@@ -103,6 +110,10 @@ export interface Playlist {
   color: string;
   /** Parent playlist; top-level playlists omit this. */
   parentId?: string;
+  /** Source YouTube playlist id when imported via Invidious (optional). */
+  youtubePlaylistId?: string;
+  /** Canonical YouTube playlist URL (optional). */
+  youtubePlaylistUrl?: string;
 }
 
 export type PlaylistParentErrorCode =
@@ -181,6 +192,12 @@ export class MusicboxxDB extends Dexie {
       settings: 'key',
     });
     this.version(7).stores({
+      songs: '++id, catalogKey, createdAt, appleMusicTrackId, primaryArtist, title',
+      playlists: 'id, name, isSystem, createdAt, parentId',
+      playlistSongs: '[playlistId+songId], playlistId, songId',
+      settings: 'key',
+    });
+    this.version(8).stores({
       songs: '++id, catalogKey, createdAt, appleMusicTrackId, primaryArtist, title',
       playlists: 'id, name, isSystem, createdAt, parentId',
       playlistSongs: '[playlistId+songId], playlistId, songId',
@@ -404,6 +421,33 @@ export async function getDefaultPlaylistId(): Promise<string> {
   return FAVORITES_PLAYLIST_ID;
 }
 
+export async function getInvidiousBaseUrlOverride(): Promise<string | null> {
+  const row = await db.settings.get(INVIDIOUS_BASE_URL_SETTING_KEY);
+  const v = row?.value?.trim();
+  return v || null;
+}
+
+export async function getInvidiousBaseUrl(): Promise<string> {
+  const row = await db.settings.get(INVIDIOUS_BASE_URL_SETTING_KEY);
+  const v = row?.value?.trim();
+  if (!v) return DEFAULT_INVIDIOUS_BASE_URL;
+  try {
+    return normalizeInvidiousBaseUrl(v);
+  } catch {
+    return DEFAULT_INVIDIOUS_BASE_URL;
+  }
+}
+
+/** Persists override, or clears to use {@link DEFAULT_INVIDIOUS_BASE_URL}. */
+export async function setInvidiousBaseUrlOverride(raw: string | null | undefined): Promise<void> {
+  if (raw == null || raw.trim() === '') {
+    await db.settings.delete(INVIDIOUS_BASE_URL_SETTING_KEY);
+    return;
+  }
+  const normalized = normalizeInvidiousBaseUrl(raw);
+  await db.settings.put({ key: INVIDIOUS_BASE_URL_SETTING_KEY, value: normalized });
+}
+
 export async function setDefaultPlaylist(playlistId: string): Promise<void> {
   const pl = await db.playlists.get(playlistId);
   if (!pl) {
@@ -516,6 +560,63 @@ export async function addSongToPlaylist(playlistId: string, songId: number): Pro
   }
 }
 
+/**
+ * Adds a YouTube video to the catalog if missing, and ensures membership in `playlistId`.
+ */
+export async function addOrMergeYoutubeVideoToPlaylist(
+  videoId: string,
+  playlistId: string
+): Promise<{ song: Song; newSong: boolean; addedLink: boolean }> {
+  const catalogKey = songCatalogKey('youtube', videoId);
+  const existing = await getSongByCatalogKey(catalogKey);
+  if (existing?.id != null) {
+    const before = await db.playlistSongs
+      .where('[playlistId+songId]')
+      .equals([playlistId, existing.id])
+      .first();
+    await addSongToPlaylist(playlistId, existing.id);
+    return { song: existing as Song, newSong: false, addedLink: !before };
+  }
+
+  let title = 'YouTube video';
+  let author: string | undefined;
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`
+    );
+    if (res.ok) {
+      const data = (await res.json()) as { title?: string; author_name?: string };
+      if (data.title) title = data.title;
+      if (data.author_name) author = data.author_name;
+    }
+  } catch {
+    /* keep fallback */
+  }
+
+  const song: Song = {
+    provider: 'youtube',
+    catalogKey,
+    videoId,
+    title,
+    author,
+    primaryArtist: normalizePrimaryArtist(author),
+    createdAt: Date.now(),
+  };
+
+  const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
+    const nid = await db.songs.add(song);
+    await addSongToPlaylist(playlistId, nid as number);
+    return nid as number;
+  });
+
+  return {
+    song: { ...song, id: newId },
+    newSong: true,
+    addedLink: true,
+  };
+}
+
 export async function removeSongFromPlaylist(playlistId: string, songId: number): Promise<void> {
   await db.playlistSongs
     .where('[playlistId+songId]')
@@ -534,7 +635,11 @@ export async function deleteSongFromLibrary(
   });
 }
 
-export async function createPlaylist(name: string, parentId?: string): Promise<Playlist> {
+export async function createPlaylist(
+  name: string,
+  parentId?: string,
+  youtubeSource?: { youtubePlaylistId: string; youtubePlaylistUrl: string }
+): Promise<Playlist> {
   const id =
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
@@ -547,6 +652,12 @@ export async function createPlaylist(name: string, parentId?: string): Promise<P
     createdAt: Date.now(),
     color: pickRandomPlaylistColor(),
     ...(parentId !== undefined ? { parentId } : {}),
+    ...(youtubeSource
+      ? {
+          youtubePlaylistId: youtubeSource.youtubePlaylistId,
+          youtubePlaylistUrl: youtubeSource.youtubePlaylistUrl,
+        }
+      : {}),
   };
   await db.playlists.add(playlist);
   return playlist;
@@ -557,10 +668,16 @@ export type AddSongResult =
   | { ok: true; song: Song; duplicate: true }
   | { ok: false; error: 'invalid_url' | 'network' };
 
+export type AddSongFromParsedOptions = {
+  /** When set, also add the new song to this playlist (after adding to the default playlist). */
+  alsoAddToPlaylistId?: string;
+};
+
 export async function addSongFromParsed(
   parsed: ParsedMusic,
   titleHint?: string,
-  authorHint?: string
+  authorHint?: string,
+  options?: AddSongFromParsedOptions
 ): Promise<AddSongResult> {
   const idStr = parsed.provider === 'youtube' ? parsed.videoId : parsed.trackId;
   const catalogKey = songCatalogKey(parsed.provider, idStr);
@@ -603,9 +720,15 @@ export async function addSongFromParsed(
     };
 
     const defaultPl = await getDefaultPlaylistId();
+    const extraPl = options?.alsoAddToPlaylistId;
+    const extraResolved =
+      extraPl && extraPl !== defaultPl ? await db.playlists.get(extraPl) : null;
     const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
       const nid = await db.songs.add(song);
       await addSongToPlaylist(defaultPl, nid as number);
+      if (extraResolved) {
+        await addSongToPlaylist(extraResolved.id, nid as number);
+      }
       return nid as number;
     });
 
@@ -642,9 +765,15 @@ export async function addSongFromParsed(
     };
 
     const defaultPl = await getDefaultPlaylistId();
+    const extraPl = options?.alsoAddToPlaylistId;
+    const extraResolved =
+      extraPl && extraPl !== defaultPl ? await db.playlists.get(extraPl) : null;
     const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
       const nid = await db.songs.add(song);
       await addSongToPlaylist(defaultPl, nid as number);
+      if (extraResolved) {
+        await addSongToPlaylist(extraResolved.id, nid as number);
+      }
       return nid as number;
     });
 
@@ -694,9 +823,15 @@ export async function addSongFromParsed(
   };
 
   const defaultPl = await getDefaultPlaylistId();
+  const extraPl = options?.alsoAddToPlaylistId;
+  const extraResolved =
+    extraPl && extraPl !== defaultPl ? await db.playlists.get(extraPl) : null;
   const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
     const nid = await db.songs.add(song);
     await addSongToPlaylist(defaultPl, nid as number);
+    if (extraResolved) {
+      await addSongToPlaylist(extraResolved.id, nid as number);
+    }
     return nid as number;
   });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  parseAddMusicFromInput,
   parseMusicFromInput,
   parseMusicFromSharePayload,
   songCatalogKey,
@@ -54,6 +55,25 @@ describe('parseMusicFromInput', () => {
   });
 });
 
+describe('parseAddMusicFromInput', () => {
+  it('prefers YouTube playlist when list= is present', () => {
+    expect(
+      parseAddMusicFromInput('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLtest123')
+    ).toEqual({
+      kind: 'youtube-playlist',
+      playlistId: 'PLtest123',
+      canonicalUrl: 'https://www.youtube.com/playlist?list=PLtest123',
+    });
+  });
+
+  it('falls back to single track when no playlist', () => {
+    expect(parseAddMusicFromInput('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toEqual({
+      kind: 'track',
+      parsed: { provider: 'youtube', videoId: 'dQw4w9WgXcQ' },
+    });
+  });
+});
+
 describe('parseMusicFromSharePayload', () => {
   it('prefers url param', () => {
     expect(
@@ -92,5 +112,14 @@ describe('parseMusicFromSharePayload', () => {
   it('returns null when nothing matches', () => {
     expect(parseMusicFromSharePayload(null, 'no links here')).toBeNull();
     expect(parseMusicFromSharePayload(null, '')).toBeNull();
+  });
+
+  it('returns null for YouTube playlist URLs (use parseAddMusicFromSharePayload)', () => {
+    expect(
+      parseMusicFromSharePayload(
+        'https://www.youtube.com/playlist?list=PLonlyPlaylist',
+        null
+      )
+    ).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { parseAppleMusicFromInput } from './appleMusic';
 import { parseSpotifyTrackId } from './spotify';
-import { parseYouTubeVideoId } from './youtube';
+import { parseYouTubePlaylistFromInput, parseYouTubeVideoId } from './youtube';
 
 const URL_IN_TEXT_RE = /https?:\/\/[^\s<>"']+/gi;
 
@@ -9,8 +9,26 @@ export type ParsedMusic =
   | { provider: 'spotify'; trackId: string }
   | { provider: 'apple-music'; trackId: string; openUrl: string };
 
+/** Single track or a YouTube playlist link (background detection — no separate control). */
+export type AddMusicInput =
+  | { kind: 'track'; parsed: ParsedMusic }
+  | { kind: 'youtube-playlist'; playlistId: string; canonicalUrl: string };
+
 export function songCatalogKey(provider: ParsedMusic['provider'], id: string): string {
   return `${provider}:${id}`;
+}
+
+/**
+ * Same paste box as single tracks: playlist URLs are detected first, then Spotify/Apple/YouTube video.
+ */
+export function parseAddMusicFromInput(input: string): AddMusicInput | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const pl = parseYouTubePlaylistFromInput(trimmed);
+  if (pl) return { kind: 'youtube-playlist', ...pl };
+  const track = parseMusicFromInput(trimmed);
+  if (track) return { kind: 'track', parsed: track };
+  return null;
 }
 
 /**
@@ -28,6 +46,34 @@ export function parseMusicFromInput(input: string): ParsedMusic | null {
   return null;
 }
 
+/**
+ * Web Share Target: same classification order as {@link parseAddMusicFromInput}.
+ */
+export function parseAddMusicFromSharePayload(
+  urlParam: string | null | undefined,
+  textParam: string | null | undefined
+): AddMusicInput | null {
+  if (urlParam) {
+    const fromUrl = parseAddMusicFromInput(tryDecode(urlParam.trim()));
+    if (fromUrl) return fromUrl;
+  }
+
+  const text = textParam?.trim() ?? '';
+  if (!text) return null;
+
+  const fromWhole = parseAddMusicFromInput(text);
+  if (fromWhole) return fromWhole;
+
+  URL_IN_TEXT_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_IN_TEXT_RE.exec(text)) !== null) {
+    const parsed = parseAddMusicFromInput(m[0]);
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
 function tryDecode(raw: string): string {
   try {
     return decodeURIComponent(raw.replace(/\+/g, ' '));
@@ -37,30 +83,14 @@ function tryDecode(raw: string): string {
 }
 
 /**
- * Resolve a music link from Web Share Target params (YouTube, Spotify, or Apple Music).
- * Prefers `url`, then whole `text`, then first URL found in `text`.
+ * Legacy single-track share parsing. YouTube **playlist** URLs return `null` — use
+ * {@link parseAddMusicFromSharePayload} for full classification.
  */
 export function parseMusicFromSharePayload(
   urlParam: string | null | undefined,
   textParam: string | null | undefined
 ): ParsedMusic | null {
-  if (urlParam) {
-    const fromUrl = parseMusicFromInput(tryDecode(urlParam.trim()));
-    if (fromUrl) return fromUrl;
-  }
-
-  const text = textParam?.trim() ?? '';
-  if (!text) return null;
-
-  const fromWhole = parseMusicFromInput(text);
-  if (fromWhole) return fromWhole;
-
-  URL_IN_TEXT_RE.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = URL_IN_TEXT_RE.exec(text)) !== null) {
-    const parsed = parseMusicFromInput(m[0]);
-    if (parsed) return parsed;
-  }
-
-  return null;
+  const r = parseAddMusicFromSharePayload(urlParam, textParam);
+  if (!r || r.kind === 'youtube-playlist') return null;
+  return r.parsed;
 }

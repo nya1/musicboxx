@@ -15,6 +15,7 @@ function renderShare(initialPath: string) {
       <Routes>
         <Route path="/share" element={<ShareTargetPage />} />
         <Route path="/song/:id" element={<div data-testid="song-detail">ok</div>} />
+        <Route path="/add" element={<div data-testid="add-page">add</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -46,6 +47,18 @@ describe('ShareTargetPage', () => {
       expect(screen.getByTestId('song-detail')).toBeInTheDocument();
     });
     expect(mockAddSongFromParsed).toHaveBeenCalled();
+  });
+
+  it('navigates to Add song when a YouTube playlist is shared', async () => {
+    const url = encodeURIComponent(
+      'https://www.youtube.com/watch?v=abc12345678&list=PLplaylistIdHere'
+    );
+    renderShare(`/share?url=${url}`);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-page')).toBeInTheDocument();
+    });
+    expect(mockAddSongFromParsed).not.toHaveBeenCalled();
   });
 
   it('shows duplicate message when song exists', async () => {

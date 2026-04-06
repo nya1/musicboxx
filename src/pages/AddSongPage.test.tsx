@@ -6,9 +6,13 @@ import { AddSongPage } from './AddSongPage';
 
 const mockAddSongFromParsed = vi.fn();
 
-vi.mock('../db', () => ({
-  addSongFromParsed: (...args: unknown[]) => mockAddSongFromParsed(...args),
-}));
+vi.mock('../db', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../db')>();
+  return {
+    ...mod,
+    addSongFromParsed: (...args: unknown[]) => mockAddSongFromParsed(...args),
+  };
+});
 
 function renderAddSong(initialEntry = '/add') {
   return render(
@@ -33,7 +37,7 @@ describe('AddSongPage', () => {
       screen.getByRole('textbox', { name: /^track url$/i }),
       'https://example.com'
     );
-    await user.click(screen.getByRole('button', { name: /save to default playlist/i }));
+    await user.click(screen.getByRole('button', { name: /^add song$/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/doesn’t look like a supported/i);
     expect(mockAddSongFromParsed).not.toHaveBeenCalled();
@@ -52,7 +56,7 @@ describe('AddSongPage', () => {
       screen.getByRole('textbox', { name: /^track url$/i }),
       'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
     );
-    await user.click(screen.getByRole('button', { name: /save to default playlist/i }));
+    await user.click(screen.getByRole('button', { name: /^add song$/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId('song-detail')).toBeInTheDocument();
@@ -73,7 +77,7 @@ describe('AddSongPage', () => {
       screen.getByRole('textbox', { name: /^track url$/i }),
       'https://youtu.be/dQw4w9WgXcQ'
     );
-    await user.click(screen.getByRole('button', { name: /save to default playlist/i }));
+    await user.click(screen.getByRole('button', { name: /^add song$/i }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(/already in your library/i);
   });

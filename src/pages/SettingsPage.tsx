@@ -1,8 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/Modal';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { clearLibraryData, db } from '../db';
+import {
+  clearLibraryData,
+  db,
+  DEFAULT_INVIDIOUS_BASE_URL,
+  getInvidiousBaseUrlOverride,
+  setInvidiousBaseUrlOverride,
+} from '../db';
 import {
   downloadLibraryExportFile,
   exportLibrarySnapshot,
@@ -22,8 +28,31 @@ export function SettingsPage() {
   const [clearDeleteInput, setClearDeleteInput] = useState('');
   const [clearWorking, setClearWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const [invidiousInput, setInvidiousInput] = useState('');
+  const [invidiousMessage, setInvidiousMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(
+    null
+  );
 
   const clearConfirmEnabled = clearDeleteInput.trim() === 'delete';
+
+  useEffect(() => {
+    void getInvidiousBaseUrlOverride().then((v) => setInvidiousInput(v ?? ''));
+  }, []);
+
+  async function saveInvidiousOverride() {
+    setInvidiousMessage(null);
+    try {
+      await setInvidiousBaseUrlOverride(invidiousInput.trim() || null);
+      const next = await getInvidiousBaseUrlOverride();
+      setInvidiousInput(next ?? '');
+      setInvidiousMessage({ kind: 'success', text: 'Saved Invidious URL.' });
+    } catch (e) {
+      setInvidiousMessage({
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Could not save.',
+      });
+    }
+  }
 
   async function handleExport() {
     setStatusMessage(null);
@@ -137,6 +166,42 @@ export function SettingsPage() {
           <ThemeToggle />
         </div>
       </section>
+
+      <details className="settings-advanced mt-lg">
+        <summary className="settings-advanced__summary">Advanced</summary>
+        <div className="settings-advanced__body">
+          <p className="muted settings-data-lead">
+            YouTube playlist import uses a public Invidious API. Default instance:{' '}
+            <code>{DEFAULT_INVIDIOUS_BASE_URL}</code>. Set a custom base URL only if the default fails (e.g. CORS or
+            downtime). Leave the field empty and save to use the default.
+          </p>
+          {invidiousMessage ? (
+            <p
+              className={invidiousMessage.kind === 'error' ? 'form-error' : 'muted'}
+              role={invidiousMessage.kind === 'error' ? 'alert' : 'status'}
+            >
+              {invidiousMessage.text}
+            </p>
+          ) : null}
+          <div className="stack settings-advanced__fields">
+            <label className="field">
+              <span className="field__label">Invidious base URL (optional)</span>
+              <input
+                className="input"
+                type="url"
+                inputMode="url"
+                autoComplete="off"
+                placeholder={DEFAULT_INVIDIOUS_BASE_URL}
+                value={invidiousInput}
+                onChange={(e) => setInvidiousInput(e.target.value)}
+              />
+            </label>
+            <button type="button" className="btn btn--secondary" onClick={() => void saveInvidiousOverride()}>
+              Save Invidious URL
+            </button>
+          </div>
+        </div>
+      </details>
 
       <section className="mt-lg" aria-labelledby="settings-data-heading">
         <h2 id="settings-data-heading" className="section-title">

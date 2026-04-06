@@ -1,3 +1,4 @@
+import { ListPlus, Music } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useParams } from 'react-router-dom';
@@ -117,13 +118,22 @@ export function PlaylistDetailPage() {
           {playlist.name}
           {isDefaultPlaylist ? <span className="badge badge--inline">Default</span> : null}
         </h1>
+        <Link
+          to={`/add?playlist=${encodeURIComponent(playlist.id)}`}
+          className="playlist-row__add playlist-row__add--title"
+          aria-label={`Add tracks to ${playlist.name}`}
+          title="Add songs"
+        >
+          <Music size={22} strokeWidth={1.75} aria-hidden />
+        </Link>
         <button
           type="button"
           className="playlist-row__add playlist-row__add--title"
-          aria-label={`Add playlist inside ${playlist.name}`}
+          aria-label={`New sub-playlist inside ${playlist.name}`}
+          title="New sub-playlist"
           onClick={() => setAddUnder(playlist)}
         >
-          +
+          <ListPlus size={22} strokeWidth={1.75} aria-hidden />
         </button>
       </div>
       <p className="playlist-detail__song-count muted" aria-live="polite">
@@ -161,17 +171,21 @@ export function PlaylistDetailPage() {
                   <button
                     type="button"
                     className="playlist-row__add"
-                    aria-label={`Add playlist inside ${c.name}`}
+                    aria-label={`New sub-playlist inside ${c.name}`}
+                    title="New sub-playlist"
                     onClick={() => setAddUnder(c)}
                   >
-                    +
+                    <ListPlus size={22} strokeWidth={1.75} aria-hidden />
                   </button>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="muted">No sub-playlists yet. Use + to add one inside this playlist.</p>
+          <p className="muted">
+            No sub-playlists yet. Use the list-with-plus button next to the title to add one inside this
+            playlist.
+          </p>
         )}
       </section>
 
