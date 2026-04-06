@@ -49,6 +49,45 @@ export function parseYouTubeVideoId(input: string): string | null {
   return null;
 }
 
+const URL_IN_TEXT_RE = /https?:\/\/[^\s<>"']+/gi;
+
+/**
+ * Resolve a YouTube video ID from Web Share Target query params.
+ * Prefers `url`; otherwise scans `text` for the first supported YouTube link.
+ */
+export function parseYouTubeVideoIdFromSharePayload(
+  urlParam: string | null | undefined,
+  textParam: string | null | undefined
+): string | null {
+  const tryDecode = (raw: string): string => {
+    try {
+      return decodeURIComponent(raw.replace(/\+/g, ' '));
+    } catch {
+      return raw;
+    }
+  };
+
+  if (urlParam) {
+    const fromUrl = parseYouTubeVideoId(tryDecode(urlParam.trim()));
+    if (fromUrl) return fromUrl;
+  }
+
+  const text = textParam?.trim() ?? '';
+  if (!text) return null;
+
+  const fromWhole = parseYouTubeVideoId(text);
+  if (fromWhole) return fromWhole;
+
+  URL_IN_TEXT_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_IN_TEXT_RE.exec(text)) !== null) {
+    const id = parseYouTubeVideoId(m[0]);
+    if (id) return id;
+  }
+
+  return null;
+}
+
 export function youtubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }

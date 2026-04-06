@@ -12,6 +12,10 @@ function viteBase(): string {
 
 const base = viteBase();
 
+/** Path for Web Share Target handler (must stay within manifest `scope`). */
+const shareTargetAction =
+  base === '/' ? '/share' : `${base.replace(/\/$/, '')}/share`;
+
 export default defineConfig({
   base,
   plugins: [
@@ -29,6 +33,15 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: base,
         scope: base === '/' ? '/' : base,
+        share_target: {
+          action: shareTargetAction,
+          method: 'GET',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+          },
+        },
         icons: [
           {
             src: 'pwa-192x192.png',

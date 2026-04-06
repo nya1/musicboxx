@@ -4,6 +4,7 @@ import { AddSongPage } from './pages/AddSongPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { PlaylistDetailPage } from './pages/PlaylistDetailPage';
 import { PlaylistsPage } from './pages/PlaylistsPage';
+import { ShareTargetPage } from './pages/ShareTargetPage';
 import { SongDetailPage } from './pages/SongDetailPage';
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<LibraryPage />} />
           <Route path="add" element={<AddSongPage />} />
+          <Route path="share" element={<ShareTargetPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="playlist/:id" element={<PlaylistDetailPage />} />
           <Route path="song/:id" element={<SongDetailPage />} />

@@ -33,6 +33,8 @@ npm run preview
 
 Deploy the **`dist/`** folder to any static host (e.g. Vercel, Netlify, GitHub Pages). The PWA registers a service worker from the build output for offline shell caching.
 
+**Share from other apps (YouTube, etc.):** The manifest includes a **Web Share Target** so Musicboxx can appear in the system share sheet on supported setups (typically **Android Chrome** with the app **installed**). iOS and desktop browsers often do not surface installed PWAs as share targets; use **Add song** and paste the link there when sharing is unavailable.
+
 ### GitHub Pages (GitHub Actions)
 
 This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml), which builds on every push to **`main`** and publishes `dist/` to GitHub Pages.
@@ -46,6 +48,15 @@ This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflo
 - [Vite](https://vitejs.dev/) + [React](https://react.dev/) + TypeScript  
 - [Dexie](https://dexie.org/) for IndexedDB  
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) for manifest and Workbox precaching  
+
+## Roadmap
+
+- Support Spotify links
+- Support Apple Music links
+- Backup local database
+- Export local database
+- Local search functionality
+
 
 ## License
 
