@@ -144,14 +144,25 @@ a:hover {
 .bottom-nav__link {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   min-height: 44px;
-  font-size: 0.8125rem;
+  padding: 6px 4px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
   border-radius: var(--radius);
+}
+
+.bottom-nav__link svg {
+  flex-shrink: 0;
+}
+
+.bottom-nav__label {
+  line-height: 1.1;
 }
 
 .bottom-nav__link:hover {
@@ -433,10 +444,57 @@ a:hover {
 }
 
 .playlist-list--nested {
-  margin-top: 8px;
-  margin-left: 12px;
-  padding-left: 12px;
+  --playlist-thread-indent: 22px;
+  --playlist-thread-arm: 16px;
+  --playlist-thread-row-mid: 26px; /* half of .playlist-row-wrap min-height (52px) */
+  --playlist-thread-gap: 8px;
+  /* Flex gap breaks vertical segments; use padding on items instead */
+  gap: 0;
+  margin-top: 0;
+  padding-top: var(--playlist-thread-gap);
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+/* Space between nested rows without a gap in the thread line */
+.playlist-list--nested > li:not(:last-child) {
+  padding-bottom: var(--playlist-thread-gap);
+}
+
+/* Threaded tree lines (comment-thread style): bend into each row + vertical spine */
+.playlist-list--nested > li {
+  position: relative;
+  padding-left: var(--playlist-thread-indent);
+}
+
+.playlist-list--nested > li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--playlist-thread-arm);
+  height: var(--playlist-thread-row-mid);
   border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-bottom-left-radius: 8px;
+  pointer-events: none;
+}
+
+/* Draw through parent→child spacing (padding-top on nested ul) so the spine is one stroke */
+.playlist-list--nested > li:first-child::before {
+  top: calc(-1 * var(--playlist-thread-gap));
+  height: calc(var(--playlist-thread-row-mid) + var(--playlist-thread-gap));
+}
+
+.playlist-list--nested > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--playlist-thread-row-mid);
+  bottom: 0;
+  border-left: 1px solid var(--border);
+  pointer-events: none;
 }
 
 .playlist-row-wrap {
