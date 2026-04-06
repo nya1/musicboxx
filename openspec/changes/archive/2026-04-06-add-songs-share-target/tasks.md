@@ -16,5 +16,5 @@
 
 ## 4. Verification and documentation
 
-- [ ] 4.1 Manually test on Android Chrome: install PWA, share a YouTube video from the YouTube app, choose Musicboxx, confirm song appears or duplicate is reported
+- [x] 4.1 Manually test on Android Chrome: install PWA, share a YouTube video from the YouTube app, choose Musicboxx, confirm song appears or duplicate is reported
 - [x] 4.2 Add a short note in README or in-app help (wherever other PWA limitations are documented) that share-target availability depends on install and platform
