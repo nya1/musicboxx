@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { FormEvent, useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
@@ -25,6 +26,8 @@ function PlaylistTreeItems({
   songCounts,
   parentId,
   defaultPlaylistId,
+  expandedIds,
+  onToggleExpand,
   onAddChild,
   onRename,
   onMove,
@@ -36,6 +39,8 @@ function PlaylistTreeItems({
   songCounts: Map<string, number>;
   parentId: string | undefined;
   defaultPlaylistId: string;
+  expandedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
   onAddChild: (playlist: Playlist) => void;
   onRename: (playlist: Playlist) => void;
   onMove: (playlist: Playlist) => void;
@@ -59,7 +64,12 @@ function PlaylistTreeItems({
       className={parentId == null ? 'playlist-list' : 'playlist-list playlist-list--nested'}
       role="list"
     >
-      {items.map((p) => (
+      {items.map((p) => {
+        const hasNested = playlists.some(
+          (c) => (c.parentId ?? undefined) === p.id
+        );
+        const expanded = expandedIds.has(p.id);
+        return (
         <li key={p.id}>
           <div
             className="playlist-row-wrap"
@@ -69,6 +79,26 @@ function PlaylistTreeItems({
               } as CSSProperties
             }
           >
+            {hasNested ? (
+              <button
+                type="button"
+                className="playlist-row-expand"
+                aria-expanded={expanded}
+                aria-label={expanded ? `Collapse ${p.name}` : `Expand ${p.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onToggleExpand(p.id);
+                }}
+              >
+                {expanded ? (
+                  <ChevronDown size={20} strokeWidth={2} aria-hidden />
+                ) : (
+                  <ChevronRight size={20} strokeWidth={2} aria-hidden />
+                )}
+              </button>
+            ) : (
+              <span className="playlist-row-expand playlist-row-expand--spacer" aria-hidden />
+            )}
             <Link to={`/playlist/${p.id}`} className="playlist-row__link">
               <span className="playlist-row__link-text">
                 <span className="playlist-row__name">{p.name}</span>
@@ -90,20 +120,25 @@ function PlaylistTreeItems({
               onDelete={() => onDelete(p)}
             />
           </div>
-          <PlaylistTreeItems
-            playlists={playlists}
-            songCounts={songCounts}
-            parentId={p.id}
-            defaultPlaylistId={defaultPlaylistId}
-            onAddChild={onAddChild}
-            onRename={onRename}
-            onMove={onMove}
-            onDelete={onDelete}
-            onSetDefault={onSetDefault}
-            onChangeColor={onChangeColor}
-          />
+          {hasNested && expanded ? (
+            <PlaylistTreeItems
+              playlists={playlists}
+              songCounts={songCounts}
+              parentId={p.id}
+              defaultPlaylistId={defaultPlaylistId}
+              expandedIds={expandedIds}
+              onToggleExpand={onToggleExpand}
+              onAddChild={onAddChild}
+              onRename={onRename}
+              onMove={onMove}
+              onDelete={onDelete}
+              onSetDefault={onSetDefault}
+              onChangeColor={onChangeColor}
+            />
+          ) : null}
         </li>
-      ))}
+      );
+      })}
     </ul>
   );
 }
@@ -126,6 +161,18 @@ export function PlaylistsPage() {
   const [moveTarget, setMoveTarget] = useState<Playlist | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
   const [colorTarget, setColorTarget] = useState<Playlist | null>(null);
+  const [expandedPlaylistIds, setExpandedPlaylistIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  function togglePlaylistExpanded(id: string) {
+    setExpandedPlaylistIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -173,6 +220,8 @@ export function PlaylistsPage() {
         songCounts={songCounts}
         parentId={undefined}
         defaultPlaylistId={defaultPlaylistId}
+        expandedIds={expandedPlaylistIds}
+        onToggleExpand={togglePlaylistExpanded}
         onAddChild={(p) => setSubModal(p)}
         onRename={(p) => setRenameTarget(p)}
         onMove={(p) => setMoveTarget(p)}

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { db } from '../db';
 import { SongThumbnail } from '../components/SongThumbnail';
 import {
@@ -10,9 +10,15 @@ import {
   searchSongIds,
 } from '../lib/songSearchIndex';
 
+const LIBRARY_INITIAL_PAGE_SIZE = 20;
+
 export function LibraryPage() {
   const songs = useLiveQuery(() => db.songs.orderBy('createdAt').reverse().toArray(), []);
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const [visibleCount, setVisibleCount] = useState(LIBRARY_INITIAL_PAGE_SIZE);
+
+  const libraryReturnPath = searchParams.toString() ? `/?${searchParams.toString()}` : '/';
 
   const index = useMemo(() => (songs ? buildSongSearchIndex(songs) : null), [songs]);
 
@@ -23,6 +29,19 @@ export function LibraryPage() {
     const hits = searchSongIds(index, q, songs);
     return orderSongsBySearchHits(songs, hits);
   }, [songs, index, query]);
+
+  const searchKey = query.trim();
+  const [prevSearchKey, setPrevSearchKey] = useState(searchKey);
+  if (searchKey !== prevSearchKey) {
+    setPrevSearchKey(searchKey);
+    setVisibleCount(LIBRARY_INITIAL_PAGE_SIZE);
+  }
+
+  const visibleSongs = useMemo(
+    () => displaySongs.slice(0, visibleCount),
+    [displaySongs, visibleCount]
+  );
+  const hasMore = displaySongs.length > visibleSongs.length;
 
   if (!songs) {
     return <p className="muted">Loading…</p>;
@@ -53,7 +72,21 @@ export function LibraryPage() {
             type="search"
             className="input"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (v.trim() === '') {
+                    next.delete('q');
+                  } else {
+                    next.set('q', v);
+                  }
+                  return next;
+                },
+                { replace: true }
+              );
+            }}
             autoComplete="off"
             enterKeyHint="search"
             placeholder="Title, artist, album…"
@@ -75,29 +108,46 @@ export function LibraryPage() {
       ) : noMatches ? (
         <p className="muted">No matching songs. Try different words.</p>
       ) : (
-        <ul className="song-list" role="list">
-          {displaySongs.map((song) => (
-            <li key={song.id}>
-              <Link to={`/song/${song.id}`} className="song-row">
-                <SongThumbnail song={song} alt="" className="song-row__thumb" />
-                <div className="song-row__text">
-                  <span className="song-row__title">{song.title}</span>
-                  {song.author ? (
-                    <span className="song-row__meta muted">{song.author}</span>
-                  ) : (
-                    <span className="song-row__meta muted">
-                      {song.provider === 'spotify'
-                        ? 'Spotify'
-                        : song.provider === 'apple-music'
-                          ? 'Apple Music'
-                          : 'YouTube'}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="song-list" role="list">
+            {visibleSongs.map((song) => (
+              <li key={song.id}>
+                <Link
+                  to={`/song/${song.id}`}
+                  state={{ from: libraryReturnPath }}
+                  className="song-row"
+                >
+                  <SongThumbnail song={song} alt="" className="song-row__thumb" />
+                  <div className="song-row__text">
+                    <span className="song-row__title">{song.title}</span>
+                    {song.author ? (
+                      <span className="song-row__meta muted">{song.author}</span>
+                    ) : (
+                      <span className="song-row__meta muted">
+                        {song.provider === 'spotify'
+                          ? 'Spotify'
+                          : song.provider === 'apple-music'
+                            ? 'Apple Music'
+                            : 'YouTube'}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {hasMore ? (
+            <div className="mt-lg">
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => setVisibleCount((c) => c + LIBRARY_INITIAL_PAGE_SIZE)}
+              >
+                Load more
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

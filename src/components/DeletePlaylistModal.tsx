@@ -6,13 +6,17 @@ type DeletePlaylistModalProps = {
   isOpen: boolean;
   onClose: () => void;
   playlist: Playlist;
+  /** Called only after the playlist was deleted successfully. */
+  onDeleted?: () => void;
 };
 
 function DeletePlaylistContent({
   onClose,
+  onDeleted,
   playlist,
 }: {
   onClose: () => void;
+  onDeleted?: () => void;
   playlist: Playlist;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +25,7 @@ function DeletePlaylistContent({
     setError(null);
     try {
       await deletePlaylist(playlist.id);
+      onDeleted?.();
       onClose();
     } catch (err) {
       if (err instanceof PlaylistDeleteError) {
@@ -54,10 +59,20 @@ function DeletePlaylistContent({
   );
 }
 
-export function DeletePlaylistModal({ isOpen, onClose, playlist }: DeletePlaylistModalProps) {
+export function DeletePlaylistModal({
+  isOpen,
+  onClose,
+  onDeleted,
+  playlist,
+}: DeletePlaylistModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Delete playlist">
-      <DeletePlaylistContent key={playlist.id} onClose={onClose} playlist={playlist} />
+      <DeletePlaylistContent
+        key={playlist.id}
+        onClose={onClose}
+        onDeleted={onDeleted}
+        playlist={playlist}
+      />
     </Modal>
   );
 }

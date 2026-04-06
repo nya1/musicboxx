@@ -22,6 +22,8 @@ export async function runYoutubePlaylistImport(options: {
   mode: 'new' | 'existing';
   prefetched: { title: string; videoIds: string[] };
   newPlaylistName?: string;
+  /** When mode is `new`, the new playlist is created under this folder (not top-level). */
+  parentIdForNewPlaylist?: string;
   existingPlaylistId?: string;
   onProgress?: (done: number, total: number) => void;
 }): Promise<{ summary: YoutubePlaylistImportSummary; playlist: Playlist }> {
@@ -37,7 +39,8 @@ export async function runYoutubePlaylistImport(options: {
   if (options.mode === 'new') {
     const name =
       (options.newPlaylistName?.trim() || title.trim() || 'Imported playlist').trim();
-    playlist = await createPlaylist(name, undefined, yt);
+    const parent = options.parentIdForNewPlaylist;
+    playlist = await createPlaylist(name, parent, yt);
   } else {
     const id = options.existingPlaylistId;
     if (!id) throw new Error('Missing playlist id.');

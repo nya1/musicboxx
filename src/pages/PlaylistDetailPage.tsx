@@ -1,8 +1,13 @@
 import { ListPlus, Music } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChangePlaylistColorModal } from '../components/ChangePlaylistColorModal';
 import { CreateSubplaylistModal } from '../components/CreateSubplaylistModal';
+import { DeletePlaylistModal } from '../components/DeletePlaylistModal';
+import { MovePlaylistModal } from '../components/MovePlaylistModal';
+import { PlaylistOverflowMenu } from '../components/PlaylistOverflowMenu';
+import { RenamePlaylistModal } from '../components/RenamePlaylistModal';
 import {
   db,
   FAVORITES_PLAYLIST_ID,
@@ -14,6 +19,7 @@ import {
   getSongsInPlaylistSubtreeDeduped,
   formatPlaylistSongCountLabel,
   removeSongFromPlaylist,
+  setDefaultPlaylist,
   type Playlist,
   type Song,
 } from '../db';
@@ -22,9 +28,14 @@ import { SongThumbnail } from '../components/SongThumbnail';
 export function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>();
   const playlistId = id ?? '';
+  const navigate = useNavigate();
 
   /** Parent playlist for the “new sub-playlist” modal (current row or a child row). */
   const [addUnder, setAddUnder] = useState<Playlist | null>(null);
+  const [renameTarget, setRenameTarget] = useState<Playlist | null>(null);
+  const [moveTarget, setMoveTarget] = useState<Playlist | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+  const [colorTarget, setColorTarget] = useState<Playlist | null>(null);
 
   const data = useLiveQuery(
     async () => {
@@ -35,6 +46,7 @@ export function PlaylistDetailPage() {
           directMemberIds: new Set<number>(),
           children: [] as Playlist[],
           ancestors: [] as Playlist[],
+          allPlaylists: [] as Playlist[],
           defaultPlaylistId: FAVORITES_PLAYLIST_ID,
         };
       }
@@ -46,6 +58,7 @@ export function PlaylistDetailPage() {
           directMemberIds: new Set<number>(),
           children: [] as Playlist[],
           ancestors: [] as Playlist[],
+          allPlaylists: [] as Playlist[],
           defaultPlaylistId: FAVORITES_PLAYLIST_ID,
         };
       }
@@ -57,7 +70,15 @@ export function PlaylistDetailPage() {
       ]);
       const children = getChildPlaylistsSorted(playlistId, allPlaylists);
       const ancestors = getPlaylistAncestors(playlist, allPlaylists);
-      return { playlist, songs, directMemberIds, children, ancestors, defaultPlaylistId };
+      return {
+        playlist,
+        songs,
+        directMemberIds,
+        children,
+        ancestors,
+        allPlaylists,
+        defaultPlaylistId,
+      };
     },
     [playlistId]
   );
@@ -66,7 +87,8 @@ export function PlaylistDetailPage() {
     return <p className="muted">Loading…</p>;
   }
 
-  const { playlist, songs, directMemberIds, children, ancestors, defaultPlaylistId } = data;
+  const { playlist, songs, directMemberIds, children, ancestors, allPlaylists, defaultPlaylistId } =
+    data;
 
   if (!playlist) {
     return (
@@ -135,6 +157,17 @@ export function PlaylistDetailPage() {
         >
           <ListPlus size={22} strokeWidth={1.75} aria-hidden />
         </button>
+        <PlaylistOverflowMenu
+          playlist={playlist}
+          allPlaylists={allPlaylists}
+          defaultPlaylistId={defaultPlaylistId}
+          onRename={() => setRenameTarget(playlist)}
+          onSetDefault={() => void setDefaultPlaylist(playlist.id)}
+          onAddChild={() => setAddUnder(playlist)}
+          onMove={() => setMoveTarget(playlist)}
+          onChangeColor={() => setColorTarget(playlist)}
+          onDelete={() => setDeleteTarget(playlist)}
+        />
       </div>
       <p className="playlist-detail__song-count muted" aria-live="polite">
         {songCountLabel}
@@ -146,6 +179,37 @@ export function PlaylistDetailPage() {
           onClose={() => setAddUnder(null)}
           parentId={addUnder.id}
           parentName={addUnder.name}
+        />
+      ) : null}
+      {renameTarget ? (
+        <RenamePlaylistModal
+          isOpen
+          onClose={() => setRenameTarget(null)}
+          playlistId={renameTarget.id}
+          initialName={renameTarget.name}
+        />
+      ) : null}
+      {moveTarget ? (
+        <MovePlaylistModal
+          isOpen
+          onClose={() => setMoveTarget(null)}
+          playlist={moveTarget}
+          allPlaylists={allPlaylists}
+        />
+      ) : null}
+      {deleteTarget ? (
+        <DeletePlaylistModal
+          isOpen
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => navigate('/playlists')}
+          playlist={deleteTarget}
+        />
+      ) : null}
+      {colorTarget ? (
+        <ChangePlaylistColorModal
+          isOpen
+          onClose={() => setColorTarget(null)}
+          playlist={colorTarget}
         />
       ) : null}
 

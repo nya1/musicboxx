@@ -627,6 +627,31 @@ a:hover {
   pointer-events: none;
 }
 
+.playlist-row-expand {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.playlist-row-expand:hover {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.playlist-row-expand--spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .playlist-row-wrap {
   display: flex;
   align-items: center;

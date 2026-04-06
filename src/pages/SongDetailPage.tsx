@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { siApplemusic, siGenius, siSpotify, siYoutube } from 'simple-icons';
 import {
   addSongToPlaylist,
@@ -15,9 +15,22 @@ import { geniusSearchUrl } from '../lib/geniusSearch';
 import { spotifyOpenUrl } from '../lib/spotify';
 import { youtubeWatchUrl } from '../lib/youtube';
 
+type SongDetailLocationState = { from?: string };
+
+function safeLibraryHref(from: unknown): string {
+  if (typeof from !== 'string' || !from.startsWith('/') || from.startsWith('//')) {
+    return '/';
+  }
+  return from;
+}
+
 export function SongDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const libraryHref = safeLibraryHref(
+    (location.state as SongDetailLocationState | null)?.from
+  );
   const songId = id ? parseInt(id, 10) : NaN;
 
   const bundle = useLiveQuery(
@@ -95,12 +108,12 @@ export function SongDetailPage() {
     );
     if (!ok) return;
     await deleteSongFromLibrary(songRecord.id);
-    navigate('/');
+    navigate(libraryHref);
   }
 
   return (
     <div>
-      <Link to="/" className="back-link">
+      <Link to={libraryHref} className="back-link">
         ← Library
       </Link>
       <article className="song-detail">

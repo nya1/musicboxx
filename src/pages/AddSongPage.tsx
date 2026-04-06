@@ -50,14 +50,6 @@ export function AddSongPage() {
   const ytFromShare = searchParams.get('ytPlaylist');
   const shareProcessed = useRef(false);
 
-  const contextPlaylist = useLiveQuery(
-    async () => {
-      if (!contextPlaylistId) return null;
-      return db.playlists.get(contextPlaylistId);
-    },
-    [contextPlaylistId]
-  );
-
   const playlists = useLiveQuery(() => db.playlists.orderBy('createdAt').toArray());
   const defaultPlaylistId = useLiveQuery(() => getDefaultPlaylistId(), []);
 
@@ -76,7 +68,6 @@ export function AddSongPage() {
     try {
       const base = await getInvidiousBaseUrl();
       const data = await fetchInvidiousPlaylistVideos(base, parsed.playlistId);
-      const ctx = contextPlaylistId ? await db.playlists.get(contextPlaylistId) : null;
       setNewPlaylistName(data.title || 'Imported playlist');
       setImportState({
         phase: 'choose',
@@ -85,7 +76,7 @@ export function AddSongPage() {
         remoteTitle: data.title,
         videoIds: data.videoIds,
       });
-      setImportTarget(ctx ? 'existing' : 'new');
+      setImportTarget('existing');
     } catch (e) {
       setImportState({ phase: 'idle' });
       if (e instanceof InvidiousPlaylistError) {
@@ -94,7 +85,7 @@ export function AddSongPage() {
         setError('Couldn’t load that playlist. Try again later.');
       }
     }
-  }, [contextPlaylistId]);
+  }, []);
 
   useEffect(() => {
     if (!ytFromShare || shareProcessed.current) return;
@@ -155,11 +146,15 @@ export function AddSongPage() {
   async function confirmPlaylistImport() {
     if (importState.phase !== 'choose') return;
     const snap = importState;
-    if (importTarget === 'existing') {
-      if (!contextPlaylistId || !contextPlaylist) {
-        setError('Pick a playlist to add to, or open this page from a playlist.');
-        return;
-      }
+    const chosenPlaylistId = targetPlaylistId ?? defaultPlaylistId;
+    if (!chosenPlaylistId) {
+      setError('Pick a playlist in the form above, or wait for playlists to load.');
+      return;
+    }
+    const chosenPlaylist = playlists?.find((p) => p.id === chosenPlaylistId);
+    if (!chosenPlaylist) {
+      setError('Pick a valid playlist.');
+      return;
     }
 
     const { playlistId, canonicalUrl, remoteTitle, videoIds } = snap;
@@ -172,7 +167,8 @@ export function AddSongPage() {
         mode: importTarget === 'new' ? 'new' : 'existing',
         prefetched: { title: remoteTitle, videoIds },
         newPlaylistName: importTarget === 'new' ? newPlaylistName : undefined,
-        existingPlaylistId: importTarget === 'existing' ? contextPlaylistId : undefined,
+        parentIdForNewPlaylist: importTarget === 'new' ? chosenPlaylistId : undefined,
+        existingPlaylistId: importTarget === 'existing' ? chosenPlaylistId : undefined,
         onProgress: (done, total) => {
           setImportState({ phase: 'importing', current: done, total });
         },
@@ -289,11 +285,25 @@ export function AddSongPage() {
         {importState.phase === 'fetching' ? (
           <p className="muted">Fetching playlist from Invidious…</p>
         ) : null}
-        {importState.phase === 'choose' ? (
+        {importState.phase === 'choose' && (!playlists || defaultPlaylistId == null) ? (
+          <p className="muted">Loading playlists…</p>
+        ) : null}
+        {importState.phase === 'choose' && playlists && defaultPlaylistId != null ? (
           <div className="stack">
             <p className="muted">
               <strong>{importState.remoteTitle || 'Untitled playlist'}</strong> —{' '}
               {importState.videoIds.length} videos
+            </p>
+            <p className="muted">
+              Target folder uses the <strong>Playlist</strong> choice on the Add song form:{' '}
+              <strong>
+                {formatPlaylistPath(
+                  playlists.find((p) => p.id === (targetPlaylistId ?? defaultPlaylistId)) ??
+                    playlists[0],
+                  playlists
+                )}
+              </strong>
+              .
             </p>
             <fieldset className="stack">
               <legend className="field__label">Add to</legend>
@@ -301,10 +311,19 @@ export function AddSongPage() {
                 <input
                   type="radio"
                   name="import-target"
+                  checked={importTarget === 'existing'}
+                  onChange={() => setImportTarget('existing')}
+                />
+                <span>Add videos to this playlist</span>
+              </label>
+              <label className="field" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="radio"
+                  name="import-target"
                   checked={importTarget === 'new'}
                   onChange={() => setImportTarget('new')}
                 />
-                <span>New playlist</span>
+                <span>Create a new playlist under this folder</span>
               </label>
               {importTarget === 'new' ? (
                 <label className="field">
@@ -316,19 +335,6 @@ export function AddSongPage() {
                     onChange={(e) => setNewPlaylistName(e.target.value)}
                     autoComplete="off"
                   />
-                </label>
-              ) : null}
-              {contextPlaylistId && contextPlaylist ? (
-                <label className="field" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="radio"
-                    name="import-target"
-                    checked={importTarget === 'existing'}
-                    onChange={() => setImportTarget('existing')}
-                  />
-                  <span>
-                    Current playlist: <strong>{contextPlaylist.name}</strong>
-                  </span>
                 </label>
               ) : null}
             </fieldset>
