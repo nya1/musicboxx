@@ -1,5 +1,5 @@
 import { Library, ListMusic, Plus } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 
 const navIcon = {
@@ -12,7 +12,9 @@ export function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="app-logo">Musicboxx</span>
+        <Link to="/" className="app-logo" aria-label="Musicboxx — home">
+          Musicboxx
+        </Link>
         <ThemeToggle />
       </header>
       <main className="app-main">
