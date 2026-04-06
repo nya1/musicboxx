@@ -215,6 +215,10 @@ a:hover {
   margin: 0 0 8px;
 }
 
+.library-search {
+  margin-bottom: 8px;
+}
+
 .page-title-row {
   display: flex;
   align-items: flex-start;

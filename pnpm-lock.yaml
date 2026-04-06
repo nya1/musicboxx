@@ -17,6 +17,9 @@ importers:
       lucide-react:
         specifier: ^1.7.0
         version: 1.7.0(react@19.2.4)
+      lunr:
+        specifier: ^2.3.9
+        version: 2.3.9
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -42,6 +45,9 @@ importers:
       '@testing-library/user-event':
         specifier: ^14.6.1
         version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/lunr':
+        specifier: ^2.3.7
+        version: 2.3.7
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
@@ -963,6 +969,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/lunr@2.3.7':
+    resolution: {integrity: sha512-Tb/kUm38e8gmjahQzdCKhbdsvQ9/ppzHFfsJ0dMs3ckqQsRj+P5IkSAwFTBrBxdyr3E/LoMUUrZngjDYAjiE3A==}
 
   '@types/node@25.5.2':
     resolution: {integrity: sha512-tO4ZIRKNC+MDWV4qKVZe3Ql/woTnmHDr5JD8UI5hn2pwBrHEwOEMZK7WlNb5RKB6EoJ02gwmQS9OrjuFnZYdpg==}
@@ -1936,6 +1945,9 @@ packages:
     resolution: {integrity: sha512-yI7BeItCLZJTXikmK4KNUGCKoGzSvbKlfCvw44bU4fXAL6v3gYS4uHD1jzsLkfwODYwI6Drw5Tu9Z5ulDe0TSg==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lunr@2.3.9:
+    resolution: {integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==}
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -3723,6 +3735,8 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/lunr@2.3.7': {}
+
   '@types/node@25.5.2':
     dependencies:
       undici-types: 7.18.2
@@ -4780,6 +4794,8 @@ snapshots:
   lucide-react@1.7.0(react@19.2.4):
     dependencies:
       react: 19.2.4
+
+  lunr@2.3.9: {}
 
   lz-string@1.5.0: {}
 
