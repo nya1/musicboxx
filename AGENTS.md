@@ -23,8 +23,10 @@ Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md
 | `pnpm run build` | `tsc --noEmit` then production build → `dist/` |
 | `pnpm run preview` | Serve `dist/` locally |
 | `pnpm run lint` | ESLint on `ts`/`tsx` (max warnings: 0) |
+| `pnpm run test` | Vitest (unit + flow tests, `happy-dom`) |
+| `pnpm run test:watch` | Vitest watch mode |
 
-There is **no** `test` script yet; before finishing a change, run **`pnpm run build`** and **`pnpm run lint`**.
+Before finishing a change, run **`pnpm run test`**, **`pnpm run build`**, and **`pnpm run lint`**.
 
 ## Repository layout
 
