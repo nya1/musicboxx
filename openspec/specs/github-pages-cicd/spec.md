@@ -8,7 +8,7 @@ Continuous deployment of the Musicboxx static production build to GitHub Pages u
 
 ### Requirement: GitHub Actions builds production assets on default branch
 
-The repository SHALL include a GitHub Actions workflow that runs on pushes to the default branch, installs dependencies with `npm ci`, and runs the same production build command used locally (`npm run build`), producing static output suitable for static hosting.
+The repository SHALL include a GitHub Actions workflow that runs on pushes to the default branch, installs dependencies with `pnpm install --frozen-lockfile` (or equivalent reproducible pnpm install), and runs the same production build command used locally (`pnpm run build`), producing static output suitable for static hosting.
 
 #### Scenario: Push to main triggers build
 

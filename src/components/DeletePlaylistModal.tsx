@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { deletePlaylist, PlaylistDeleteError, type Playlist } from '../db';
 import { Modal } from './Modal';
 
@@ -8,12 +8,14 @@ type DeletePlaylistModalProps = {
   playlist: Playlist;
 };
 
-export function DeletePlaylistModal({ isOpen, onClose, playlist }: DeletePlaylistModalProps) {
+function DeletePlaylistContent({
+  onClose,
+  playlist,
+}: {
+  onClose: () => void;
+  playlist: Playlist;
+}) {
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) setError(null);
-  }, [isOpen, playlist.id]);
 
   async function onConfirm() {
     setError(null);
@@ -30,26 +32,32 @@ export function DeletePlaylistModal({ isOpen, onClose, playlist }: DeletePlaylis
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Delete playlist">
-      <div className="stack">
-        <p>
-          Delete <strong>{playlist.name}</strong>? Songs stay in your library and in other playlists;
-          only this playlist’s membership is removed.
+    <div className="stack">
+      <p>
+        Delete <strong>{playlist.name}</strong>? Songs stay in your library and in other playlists;
+        only this playlist’s membership is removed.
+      </p>
+      {error ? (
+        <p className="form-error" role="alert">
+          {error}
         </p>
-        {error ? (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div className="modal-panel__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn--danger" onClick={onConfirm}>
-            Delete
-          </button>
-        </div>
+      ) : null}
+      <div className="modal-panel__actions">
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className="btn btn--danger" onClick={onConfirm}>
+          Delete
+        </button>
       </div>
+    </div>
+  );
+}
+
+export function DeletePlaylistModal({ isOpen, onClose, playlist }: DeletePlaylistModalProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Delete playlist">
+      <DeletePlaylistContent key={playlist.id} onClose={onClose} playlist={playlist} />
     </Modal>
   );
 }

@@ -4,22 +4,22 @@ Local-first **progressive web app** for saving and organizing music links as “
 
 ## Requirements
 
-- **Node.js** 18+
+- **Node.js** 25+ and **pnpm** 10 (see `package.json` `engines` and `packageManager`; use `nvm use` with `.nvmrc` if you use nvm)
 
 ## Scripts
 
 | Command        | Description                                      |
 | -------------- | ------------------------------------------------ |
-| `npm run dev`    | Start Vite dev server with hot reload            |
-| `npm run build`  | Typecheck (`tsc --noEmit`) and production build  |
-| `npm run preview`| Serve the `dist/` output locally                 |
-| `npm run lint`   | Run ESLint on the TypeScript/React source        |
+| `pnpm run dev`    | Start Vite dev server with hot reload            |
+| `pnpm run build`  | Typecheck (`tsc --noEmit`) and production build  |
+| `pnpm run preview`| Serve the `dist/` output locally                 |
+| `pnpm run lint`   | Run ESLint on the TypeScript/React source        |
 
 ## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open the URL Vite prints (usually `http://localhost:5173`).
@@ -27,8 +27,8 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 ## Production build
 
 ```bash
-npm run build
-npm run preview
+pnpm run build
+pnpm run preview
 ```
 
 Deploy the **`dist/`** folder to any static host (e.g. Vercel, Netlify, GitHub Pages). The PWA registers a service worker from the build output for offline shell caching.

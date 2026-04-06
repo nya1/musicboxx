@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { createPlaylist, PlaylistParentError } from '../db';
 import { Modal } from './Modal';
 
@@ -9,21 +9,15 @@ type CreateSubplaylistModalProps = {
   parentName: string;
 };
 
-export function CreateSubplaylistModal({
-  isOpen,
+function CreateSubplaylistFormContent({
   onClose,
   parentId,
-  parentName,
-}: CreateSubplaylistModalProps) {
+}: {
+  onClose: () => void;
+  parentId: string;
+}) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      setName('');
-      setError(null);
-    }
-  }, [isOpen, parentId]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,38 +40,49 @@ export function CreateSubplaylistModal({
   }
 
   return (
+    <form onSubmit={onSubmit} className="stack">
+      <label className="field">
+        <span className="field__label">Name</span>
+        <input
+          className="input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Playlist name"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'subplaylist-modal-error' : undefined}
+          autoComplete="off"
+        />
+      </label>
+      {error ? (
+        <p id="subplaylist-modal-error" className="form-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="modal-panel__actions">
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn--secondary">
+          Create
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function CreateSubplaylistModal({
+  isOpen,
+  onClose,
+  parentId,
+  parentName,
+}: CreateSubplaylistModalProps) {
+  return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={`New playlist in ${parentName}`}
     >
-      <form onSubmit={onSubmit} className="stack">
-        <label className="field">
-          <span className="field__label">Name</span>
-          <input
-            className="input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Playlist name"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? 'subplaylist-modal-error' : undefined}
-            autoComplete="off"
-          />
-        </label>
-        {error ? (
-          <p id="subplaylist-modal-error" className="form-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div className="modal-panel__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn--secondary">
-            Create
-          </button>
-        </div>
-      </form>
+      <CreateSubplaylistFormContent key={parentId} onClose={onClose} parentId={parentId} />
     </Modal>
   );
 }

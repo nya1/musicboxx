@@ -7,24 +7,24 @@ Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md
 - **Musicboxx** is a local-first **PWA**: save and organize music links as “songs” from **YouTube**, **Spotify**, and **Apple Music** (paste or Web Share Target). Data lives in **IndexedDB** (via **Dexie**); cover art uses static thumbnails (YouTube-derived images, Spotify/Apple metadata artwork, or placeholders). Playlists include built-in **Favorites**.
 - **Playback is external** (new tab): **YouTube**, **Spotify**, or **Apple Music** depending on each song’s provider. There is **no in-app media player**.
 - **Metadata** uses **public** client-side requests only (e.g. oEmbed, iTunes lookup)—no OAuth or streaming API keys in the app for catalog features.
-- **Stack:** Vite, React 18, TypeScript (strict), React Router, `vite-plugin-pwa` (manifest + Workbox).
+- **Stack:** Vite, React 19, TypeScript (strict), React Router, `vite-plugin-pwa` (manifest + Workbox).
 
 ## Prerequisites
 
-- **Node.js** 18+ (CI uses Node 20).
-- **npm** — this repo uses `package-lock.json`; prefer `npm ci` in CI and clean installs.
+- **Node.js** 25+ (see `engines` in `package.json`; `.nvmrc` pins `25` for **nvm**).
+- **pnpm** — this repo uses `pnpm-lock.yaml`; use **`pnpm install`** locally and **`pnpm install --frozen-lockfile`** in CI.
 
 ## Commands
 
 | Command | Purpose |
 |--------|---------|
-| `npm install` | Install dependencies |
-| `npm run dev` | Vite dev server (usually `http://localhost:5173`) |
-| `npm run build` | `tsc --noEmit` then production build → `dist/` |
-| `npm run preview` | Serve `dist/` locally |
-| `npm run lint` | ESLint on `ts`/`tsx` (max warnings: 0) |
+| `pnpm install` | Install dependencies |
+| `pnpm run dev` | Vite dev server (usually `http://localhost:5173`) |
+| `pnpm run build` | `tsc --noEmit` then production build → `dist/` |
+| `pnpm run preview` | Serve `dist/` locally |
+| `pnpm run lint` | ESLint on `ts`/`tsx` (max warnings: 0) |
 
-There is **no** `test` script yet; before finishing a change, run **`npm run build`** and **`npm run lint`**.
+There is **no** `test` script yet; before finishing a change, run **`pnpm run build`** and **`pnpm run lint`**.
 
 ## Repository layout
 
@@ -48,7 +48,7 @@ There is **no** `test` script yet; before finishing a change, run **`npm run bui
 
 - **TypeScript:** `strict` mode; unused locals/parameters are errors; match existing `tsconfig` patterns.
 - **Style:** Follow existing files (e.g. semicolons, import style as in `src/`).
-- **ESLint:** `.eslintrc.cjs` — TypeScript + React Hooks + `react-refresh/only-export-components` (warn).
+- **ESLint:** `eslint.config.js` (flat config) — TypeScript + React Hooks + `react-refresh/only-export-components` (warn).
 - **React:** Prefer hooks and clear data flow; keep routes and Dexie access in predictable places (`src/db/`).
 
 ## UI and UX
