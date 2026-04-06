@@ -1,6 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
+import { ChangePlaylistColorModal } from '../components/ChangePlaylistColorModal';
 import { CreateSubplaylistModal } from '../components/CreateSubplaylistModal';
 import { DeletePlaylistModal } from '../components/DeletePlaylistModal';
 import { MovePlaylistModal } from '../components/MovePlaylistModal';
@@ -11,6 +12,7 @@ import {
   db,
   FAVORITES_PLAYLIST_ID,
   getDefaultPlaylistId,
+  getPlaylistAccentColor,
   PlaylistParentError,
   setDefaultPlaylist,
   type Playlist,
@@ -25,6 +27,7 @@ function PlaylistTreeItems({
   onMove,
   onDelete,
   onSetDefault,
+  onChangeColor,
 }: {
   playlists: Playlist[];
   parentId: string | undefined;
@@ -34,6 +37,7 @@ function PlaylistTreeItems({
   onMove: (playlist: Playlist) => void;
   onDelete: (playlist: Playlist) => void;
   onSetDefault: (playlist: Playlist) => void;
+  onChangeColor: (playlist: Playlist) => void;
 }) {
   const items = playlists
     .filter((p) => (p.parentId ?? undefined) === (parentId ?? undefined))
@@ -54,7 +58,12 @@ function PlaylistTreeItems({
       {items.map((p) => (
         <li key={p.id}>
           <div
-            className={`playlist-row-wrap ${p.id === FAVORITES_PLAYLIST_ID ? 'playlist-row-wrap--favorites' : ''}`}
+            className="playlist-row-wrap"
+            style={
+              {
+                '--playlist-accent': getPlaylistAccentColor(p),
+              } as CSSProperties
+            }
           >
             <Link to={`/playlist/${p.id}`} className="playlist-row__link">
               <span className="playlist-row__name">{p.name}</span>
@@ -68,6 +77,7 @@ function PlaylistTreeItems({
               onSetDefault={() => onSetDefault(p)}
               onAddChild={() => onAddChild(p)}
               onMove={() => onMove(p)}
+              onChangeColor={() => onChangeColor(p)}
               onDelete={() => onDelete(p)}
             />
           </div>
@@ -80,6 +90,7 @@ function PlaylistTreeItems({
             onMove={onMove}
             onDelete={onDelete}
             onSetDefault={onSetDefault}
+            onChangeColor={onChangeColor}
           />
         </li>
       ))}
@@ -97,6 +108,7 @@ export function PlaylistsPage() {
   const [renameTarget, setRenameTarget] = useState<Playlist | null>(null);
   const [moveTarget, setMoveTarget] = useState<Playlist | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+  const [colorTarget, setColorTarget] = useState<Playlist | null>(null);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -147,6 +159,7 @@ export function PlaylistsPage() {
         onMove={(p) => setMoveTarget(p)}
         onDelete={(p) => setDeleteTarget(p)}
         onSetDefault={onSetDefault}
+        onChangeColor={(p) => setColorTarget(p)}
       />
       <form onSubmit={onCreate} className="stack mt-lg" aria-label="Create playlist">
         <h2 className="section-title">New playlist</h2>
@@ -199,6 +212,13 @@ export function PlaylistsPage() {
           isOpen
           onClose={() => setDeleteTarget(null)}
           playlist={deleteTarget}
+        />
+      ) : null}
+      {colorTarget ? (
+        <ChangePlaylistColorModal
+          isOpen
+          onClose={() => setColorTarget(null)}
+          playlist={colorTarget}
         />
       ) : null}
     </div>

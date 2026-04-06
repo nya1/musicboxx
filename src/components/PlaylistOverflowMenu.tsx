@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { FolderInput, ListPlus, Pencil, Star, Trash2 } from 'lucide-react';
+import { FolderInput, ListPlus, Palette, Pencil, Star, Trash2 } from 'lucide-react';
 import { FAVORITES_PLAYLIST_ID, getChildPlaylistsSorted, type Playlist } from '../db';
 
 const iconProps = {
@@ -17,6 +17,7 @@ type PlaylistOverflowMenuProps = {
   onSetDefault: () => void;
   onAddChild: () => void;
   onMove: () => void;
+  onChangeColor: () => void;
   onDelete: () => void;
 };
 
@@ -28,6 +29,7 @@ export function PlaylistOverflowMenu({
   onSetDefault,
   onAddChild,
   onMove,
+  onChangeColor,
   onDelete,
 }: PlaylistOverflowMenuProps) {
   const [open, setOpen] = useState(false);
@@ -99,6 +101,15 @@ export function PlaylistOverflowMenu({
           >
             <Pencil {...iconProps} />
             <span>Rename</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="playlist-overflow__item"
+            onClick={() => run(onChangeColor)}
+          >
+            <Palette {...iconProps} />
+            <span>Change color</span>
           </button>
           <button
             type="button"

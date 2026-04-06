@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useParams } from 'react-router-dom';
 import { CreateSubplaylistModal } from '../components/CreateSubplaylistModal';
@@ -8,6 +8,7 @@ import {
   getChildPlaylistsSorted,
   getDefaultPlaylistId,
   getDirectMemberSongIds,
+  getPlaylistAccentColor,
   getPlaylistAncestors,
   getSongsInPlaylistSubtreeDeduped,
   removeSongFromPlaylist,
@@ -101,7 +102,14 @@ export function PlaylistDetailPage() {
           ))}
         </nav>
       ) : null}
-      <div className="page-title-row">
+      <div
+        className="page-title-row page-title-row--accent"
+        style={
+          {
+            '--playlist-accent': getPlaylistAccentColor(playlist),
+          } as CSSProperties
+        }
+      >
         <h1 className="page-title page-title--with-action">
           {playlist.name}
           {isDefaultPlaylist ? <span className="badge badge--inline">Default</span> : null}
@@ -133,7 +141,14 @@ export function PlaylistDetailPage() {
           <ul className="playlist-list" role="list">
             {children.map((c) => (
               <li key={c.id}>
-                <div className="playlist-row-wrap">
+                <div
+                  className="playlist-row-wrap"
+                  style={
+                    {
+                      '--playlist-accent': getPlaylistAccentColor(c),
+                    } as CSSProperties
+                  }
+                >
                   <Link to={`/playlist/${c.id}`} className="playlist-row__link">
                     <span className="playlist-row__name">{c.name}</span>
                   </Link>

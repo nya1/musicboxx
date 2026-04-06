@@ -2,7 +2,53 @@ import Dexie, { type Table } from 'dexie';
 
 export const FAVORITES_PLAYLIST_ID = 'favorites';
 
+/** Warm accent for the seeded Favorites playlist (also appears in the general palette). */
+export const FAVORITES_PLAYLIST_COLOR = '#f97316';
+
+/** Curated hex accents for auto-assigned playlist colors (chosen at random on create). */
+export const PLAYLIST_ACCENT_PALETTE = [
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#f43f5e',
+  '#ea580c',
+  '#ca8a04',
+  '#65a30d',
+  '#16a34a',
+  '#0d9488',
+  '#0284c7',
+  '#2563eb',
+] as const;
+
 const DEFAULT_PLAYLIST_SETTING_KEY = 'defaultPlaylistId';
+
+/** Picks a uniformly random accent from the palette for each new playlist. */
+export function pickRandomPlaylistColor(): string {
+  const len = PLAYLIST_ACCENT_PALETTE.length;
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return PLAYLIST_ACCENT_PALETTE[buf[0] % len];
+  }
+  return PLAYLIST_ACCENT_PALETTE[Math.floor(Math.random() * len)];
+}
+
+const PLAYLIST_COLOR_HEX = /^#[0-9a-fA-F]{6}$/;
+
+export function normalizePlaylistColor(color: string): string {
+  return color.trim().toLowerCase();
+}
+
+export function isValidPlaylistColor(color: string): boolean {
+  return PLAYLIST_COLOR_HEX.test(normalizePlaylistColor(color));
+}
+
+/** Fallback when reading legacy rows without `color` (should not occur on greenfield installs). */
+export function getPlaylistAccentColor(p: Pick<Playlist, 'color'>): string {
+  return p.color ?? '#6b7280';
+}
 
 export interface AppSetting {
   key: string;
@@ -32,6 +78,8 @@ export interface Playlist {
   name: string;
   isSystem: boolean;
   createdAt: number;
+  /** CSS hex accent `#rrggbb`, lowercase after normalize. */
+  color: string;
   /** Parent playlist; top-level playlists omit this. */
   parentId?: string;
 }
@@ -88,6 +136,12 @@ export class MusicboxxDB extends Dexie {
           value: FAVORITES_PLAYLIST_ID,
         });
       });
+    this.version(4).stores({
+      songs: '++id, videoId, createdAt',
+      playlists: 'id, name, isSystem, createdAt, parentId',
+      playlistSongs: '[playlistId+songId], playlistId, songId',
+      settings: 'key',
+    });
   }
 }
 
@@ -222,6 +276,7 @@ export async function bootstrapDb(): Promise<void> {
       name: 'Favorites',
       isSystem: true,
       createdAt: Date.now(),
+      color: FAVORITES_PLAYLIST_COLOR,
     });
   }
   const setting = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
@@ -262,6 +317,18 @@ export async function renamePlaylist(playlistId: string, name: string): Promise<
     throw new Error('Playlist not found.');
   }
   await db.playlists.update(playlistId, { name: trimmed });
+}
+
+export async function updatePlaylistColor(playlistId: string, color: string): Promise<void> {
+  const normalized = normalizePlaylistColor(color);
+  if (!isValidPlaylistColor(normalized)) {
+    throw new Error('Use a valid hex color (e.g. #aabbcc).');
+  }
+  const pl = await db.playlists.get(playlistId);
+  if (!pl) {
+    throw new Error('Playlist not found.');
+  }
+  await db.playlists.update(playlistId, { color: normalized });
 }
 
 export async function movePlaylist(playlistId: string, newParentId: string | null): Promise<void> {
@@ -358,6 +425,7 @@ export async function createPlaylist(name: string, parentId?: string): Promise<P
     name: name.trim(),
     isSystem: false,
     createdAt: Date.now(),
+    color: pickRandomPlaylistColor(),
     ...(parentId !== undefined ? { parentId } : {}),
   };
   await db.playlists.add(playlist);
