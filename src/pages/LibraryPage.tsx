@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -32,7 +33,16 @@ export function LibraryPage() {
 
   return (
     <div>
-      <h1 className="page-title">Library</h1>
+      <div className="page-title-row">
+        <h1 className="page-title page-title--with-action">Library</h1>
+        <Link
+          to="/add"
+          className="playlist-row__add playlist-row__add--title"
+          aria-label="Add song from YouTube, Spotify, or Apple Music link"
+        >
+          <Plus size={22} strokeWidth={1.75} aria-hidden />
+        </Link>
+      </div>
       {songs.length > 0 ? (
         <div className="stack library-search">
           <label className="field__label" htmlFor="library-search">

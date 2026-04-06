@@ -710,6 +710,10 @@ a:hover {
   border-color: color-mix(in srgb, var(--border) 70%, var(--text));
 }
 
+a.playlist-row__add:hover {
+  text-decoration: none;
+}
+
 .playlist-row__add--title {
   width: 44px;
   height: 44px;
