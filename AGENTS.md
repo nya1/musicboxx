@@ -50,6 +50,11 @@ There is **no** `test` script yet; before finishing a change, run **`npm run bui
 - **ESLint:** `.eslintrc.cjs` — TypeScript + React Hooks + `react-refresh/only-export-components` (warn).
 - **React:** Prefer hooks and clear data flow; keep routes and Dexie access in predictable places (`src/db/`).
 
+## UI and UX
+
+- **Look and feel:** Keep the interface **consistent** across screens—spacing, typography, and controls should feel like one product. Aim for a **minimal, Vercel-like** aesthetic: plenty of whitespace, restrained color, clear hierarchy, no visual noise.
+- **Interaction:** Prefer **fewer steps** to complete a task (fewer taps/clicks and shallower navigation). Put common actions on primary surfaces; avoid burying essentials behind extra menus or confirmation steps unless necessary.
+
 ## Security and privacy
 
 - App data stays **client-side** (IndexedDB). Do not add secrets or API keys in the frontend for features that belong on a server unless the project explicitly moves to a backend.
