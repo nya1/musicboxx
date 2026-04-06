@@ -33,6 +33,11 @@ jobs:
 
       - run: pnpm run test
 
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm run test:e2e
+
       - name: Build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/

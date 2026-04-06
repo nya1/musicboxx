@@ -25,12 +25,15 @@ Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md
 | `pnpm run lint` | ESLint on `ts`/`tsx` (max warnings: 0) |
 | `pnpm run test` | Vitest (unit + flow tests, `happy-dom`) |
 | `pnpm run test:watch` | Vitest watch mode |
+| `pnpm run dev:e2e` | Vite dev server on `http://127.0.0.1:51730` (used by Playwright) |
+| `pnpm run test:e2e` | Playwright E2E (`e2e/*.spec.ts`; install browsers once with `pnpm exec playwright install chromium`) |
 
-Before finishing a change, run **`pnpm run test`**, **`pnpm run build`**, and **`pnpm run lint`**.
+Before finishing a change, run **`pnpm run test`**, **`pnpm run build`**, and **`pnpm run lint`**. After changing routes, navigation, or **`e2e/`**, also run **`pnpm run test:e2e`**.
 
 ## Repository layout
 
 - **`src/`** — application code (`pages/`, `components/`, `lib/`, `db/`).
+- **`e2e/`** — Playwright end-to-end specs (`playwright.config.ts` at repo root).
 - **`vite.config.ts`** — `base` URL, PWA manifest, **Web Share Target** wiring.
 - **`.github/workflows/deploy-github-pages.yml`** — build and deploy to GitHub Pages on push to `main`.
 
