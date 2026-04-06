@@ -33,21 +33,23 @@ export function LibraryPage() {
   return (
     <div>
       <h1 className="page-title">Library</h1>
-      <div className="stack library-search">
-        <label className="field__label" htmlFor="library-search">
-          Search songs
-        </label>
-        <input
-          id="library-search"
-          type="search"
-          className="input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoComplete="off"
-          enterKeyHint="search"
-          placeholder="Title, artist, album…"
-        />
-      </div>
+      {songs.length > 0 ? (
+        <div className="stack library-search">
+          <label className="field__label" htmlFor="library-search">
+            Search songs
+          </label>
+          <input
+            id="library-search"
+            type="search"
+            className="input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            enterKeyHint="search"
+            placeholder="Title, artist, album…"
+          />
+        </div>
+      ) : null}
 
       {songs.length === 0 ? (
         <div className="empty-state">
