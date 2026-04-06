@@ -16,7 +16,9 @@ export function AddSongPage() {
     setInfo(null);
     const parsed = parseMusicFromInput(url);
     if (!parsed) {
-      setError('That doesn’t look like a supported YouTube or Spotify track link.');
+      setError(
+        'That doesn’t look like a supported YouTube, Spotify, or Apple Music track link.'
+      );
       return;
     }
     setPending(true);
@@ -42,8 +44,8 @@ export function AddSongPage() {
     <div>
       <h1 className="page-title">Add song</h1>
       <p className="muted page-lead">
-        Paste a full YouTube or Spotify track link (or an 11-character YouTube video ID). We’ll fetch
-        the title when you’re online.
+        Paste a full YouTube, Spotify, or Apple Music track link (or an 11-character YouTube video ID).
+        We’ll fetch the title when you’re online.
       </p>
       <form onSubmit={onSubmit} className="stack" aria-label="Add song from music URL">
         <label className="field">
@@ -52,7 +54,7 @@ export function AddSongPage() {
             className="input"
             type="url"
             inputMode="url"
-            placeholder="YouTube or Spotify track link…"
+            placeholder="YouTube, Spotify, or Apple Music track link…"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             autoComplete="off"

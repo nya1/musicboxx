@@ -39,7 +39,7 @@ export function Layout() {
         <NavLink
           to="/add"
           className={({ isActive }) => (isActive ? 'bottom-nav__link is-active' : 'bottom-nav__link')}
-          aria-label="Add song from YouTube or Spotify link"
+          aria-label="Add song from YouTube, Spotify, or Apple Music link"
         >
           <Plus {...navIcon} />
           <span className="bottom-nav__label">Add</span>

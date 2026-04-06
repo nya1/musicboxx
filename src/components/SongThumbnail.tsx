@@ -17,14 +17,14 @@ export function SongThumbnail({
 
   const onError = useCallback(() => {
     setQ((prev) => {
-      if (song.provider === 'spotify') return 'placeholder';
+      if (song.provider === 'spotify' || song.provider === 'apple-music') return 'placeholder';
       if (prev === 'maxres') return 'hq';
       return 'placeholder';
     });
   }, [song.provider]);
 
   let src: string;
-  if (song.provider === 'spotify') {
+  if (song.provider === 'spotify' || song.provider === 'apple-music') {
     const tu = song.thumbnailUrl;
     if (tu && q !== 'placeholder') {
       src = tu;

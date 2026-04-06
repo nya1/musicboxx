@@ -1,6 +1,6 @@
 # Musicboxx
 
-Local-first **progressive web app** for saving and organizing YouTube links as “songs.” Paste a URL, store it in **IndexedDB**, see **static thumbnails** as cover art, and group items into playlists—starting with a built-in **Favorites** list. Playback stays on **YouTube** (opens in a new tab); there is no in-app player.
+Local-first **progressive web app** for saving and organizing music links as “songs.” Add tracks from **YouTube**, **Spotify**, or **Apple Music** (paste on **Add song** or use the **Web Share Target** where the OS supports it). Everything is stored in **IndexedDB**; cover art comes from provider thumbnails or placeholders. Playback opens **externally** in the right app or site (new tab)—YouTube, Spotify, or Apple Music—there is no in-app player.
 
 ## Requirements
 
@@ -33,7 +33,7 @@ npm run preview
 
 Deploy the **`dist/`** folder to any static host (e.g. Vercel, Netlify, GitHub Pages). The PWA registers a service worker from the build output for offline shell caching.
 
-**Share from other apps (YouTube, etc.):** The manifest includes a **Web Share Target** so Musicboxx can appear in the system share sheet on supported setups (typically **Android Chrome** with the app **installed**). iOS and desktop browsers often do not surface installed PWAs as share targets; use **Add song** and paste the link there when sharing is unavailable.
+**Share from other apps:** The manifest includes a **Web Share Target** so Musicboxx can appear in the system share sheet when you share a supported link from another app (e.g. YouTube, Spotify, or Apple Music). This works best on **Android Chrome** with the PWA **installed**. iOS and desktop browsers often do not surface installed PWAs as share targets; use **Add song** and paste the link there when sharing is unavailable.
 
 ### GitHub Pages (GitHub Actions)
 
@@ -51,7 +51,6 @@ This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflo
 
 ## Roadmap
 
-- Support Apple Music links
 - Open links to Genius
 - Backup local database
 - Export local database

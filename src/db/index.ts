@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import { type ParsedMusic, songCatalogKey } from '../lib/music';
+import { fetchAppleMusicMetadata } from '../lib/appleMusic';
 import { fetchSpotifyOembed } from '../lib/spotify';
 
 export const FAVORITES_PLAYLIST_ID = 'favorites';
@@ -67,18 +68,21 @@ export class PlaylistDeleteError extends Error {
   }
 }
 
-export type SongProvider = 'youtube' | 'spotify';
+export type SongProvider = 'youtube' | 'spotify' | 'apple-music';
 
 export interface Song {
   id?: number;
   provider: SongProvider;
-  /** Indexed unique key: `youtube:VIDEO_ID` or `spotify:TRACK_ID`. */
+  /** Indexed unique key: `youtube:…`, `spotify:…`, or `apple-music:…`. */
   catalogKey: string;
   videoId?: string;
   spotifyTrackId?: string;
+  appleMusicTrackId?: string;
+  /** Preserves storefront/locale for “Open in Apple Music”. */
+  appleMusicOpenUrl?: string;
   title: string;
   author?: string;
-  /** Spotify oEmbed cover; YouTube uses img.youtube.com from `videoId`. */
+  /** Spotify / Apple Music metadata cover; YouTube uses img.youtube.com from `videoId`. */
   thumbnailUrl?: string;
   createdAt: number;
 }
@@ -163,6 +167,12 @@ export class MusicboxxDB extends Dexie {
         await tx.table('songs').clear();
         await tx.table('playlistSongs').clear();
       });
+    this.version(6).stores({
+      songs: '++id, catalogKey, createdAt, appleMusicTrackId',
+      playlists: 'id, name, isSystem, createdAt, parentId',
+      playlistSongs: '[playlistId+songId], playlistId, songId',
+      settings: 'key',
+    });
   }
 }
 
@@ -520,11 +530,50 @@ export async function addSongFromParsed(
     };
   }
 
+  if (parsed.provider === 'spotify') {
+    const trackId = parsed.trackId;
+    if (!title) title = 'Spotify track';
+    if (!titleHint) {
+      try {
+        const o = await fetchSpotifyOembed(trackId);
+        if (o.title) title = o.title;
+        if (o.author) author = o.author;
+        if (o.thumbnailUrl) thumbnailUrl = o.thumbnailUrl;
+      } catch {
+        /* keep fallback */
+      }
+    }
+
+    const song: Song = {
+      provider: 'spotify',
+      catalogKey,
+      spotifyTrackId: trackId,
+      title,
+      author,
+      thumbnailUrl,
+      createdAt: Date.now(),
+    };
+
+    const defaultPl = await getDefaultPlaylistId();
+    const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
+      const nid = await db.songs.add(song);
+      await addSongToPlaylist(defaultPl, nid as number);
+      return nid as number;
+    });
+
+    return {
+      ok: true,
+      song: { ...song, id: newId },
+      duplicate: false,
+    };
+  }
+
   const trackId = parsed.trackId;
-  if (!title) title = 'Spotify track';
+  const openUrl = parsed.openUrl;
+  if (!title) title = 'Apple Music track';
   if (!titleHint) {
     try {
-      const o = await fetchSpotifyOembed(trackId);
+      const o = await fetchAppleMusicMetadata(trackId);
       if (o.title) title = o.title;
       if (o.author) author = o.author;
       if (o.thumbnailUrl) thumbnailUrl = o.thumbnailUrl;
@@ -534,9 +583,10 @@ export async function addSongFromParsed(
   }
 
   const song: Song = {
-    provider: 'spotify',
+    provider: 'apple-music',
     catalogKey,
-    spotifyTrackId: trackId,
+    appleMusicTrackId: trackId,
+    appleMusicOpenUrl: openUrl,
     title,
     author,
     thumbnailUrl,

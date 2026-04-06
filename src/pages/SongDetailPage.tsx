@@ -50,13 +50,21 @@ export function SongDetailPage() {
       ? youtubeWatchUrl(song.videoId)
       : song.provider === 'spotify' && song.spotifyTrackId
         ? spotifyOpenUrl(song.spotifyTrackId)
-        : null;
+        : song.provider === 'apple-music' && song.appleMusicOpenUrl
+          ? song.appleMusicOpenUrl
+          : null;
   const openLabel =
-    song.provider === 'spotify' ? 'Open in Spotify' : 'Open in YouTube';
+    song.provider === 'spotify'
+      ? 'Open in Spotify'
+      : song.provider === 'apple-music'
+        ? 'Open in Apple Music'
+        : 'Open in YouTube';
   const openAria =
     song.provider === 'spotify'
       ? `Open ${song.title} on Spotify (opens in a new tab)`
-      : `Open ${song.title} on YouTube (opens in a new tab)`;
+      : song.provider === 'apple-music'
+        ? `Open ${song.title} on Apple Music (opens in a new tab)`
+        : `Open ${song.title} on YouTube (opens in a new tab)`;
   const addable = playlists
     .filter((p) => !memberships.includes(p.id))
     .sort((a, b) =>

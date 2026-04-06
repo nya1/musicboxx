@@ -1,11 +1,12 @@
 # AGENTS.md
 
-Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md](https://agents.md/). Always keep this document updated with relevant information or instructions that are useful for agents.
+Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md](https://agents.md/). Always keep this document updated.
 
 ## Project overview
 
-- **Musicboxx** is a local-first **PWA**: save and organize **YouTube** URLs as “songs,” store data in **IndexedDB** (via **Dexie**), show static thumbnails as cover art, playlists (including built-in **Favorites**).
-- **Playback is on YouTube** (new tab). There is **no in-app media player**.
+- **Musicboxx** is a local-first **PWA**: save and organize music links as “songs” from **YouTube**, **Spotify**, and **Apple Music** (paste or Web Share Target). Data lives in **IndexedDB** (via **Dexie**); cover art uses static thumbnails (YouTube-derived images, Spotify/Apple metadata artwork, or placeholders). Playlists include built-in **Favorites**.
+- **Playback is external** (new tab): **YouTube**, **Spotify**, or **Apple Music** depending on each song’s provider. There is **no in-app media player**.
+- **Metadata** uses **public** client-side requests only (e.g. oEmbed, iTunes lookup)—no OAuth or streaming API keys in the app for catalog features.
 - **Stack:** Vite, React 18, TypeScript (strict), React Router, `vite-plugin-pwa` (manifest + Workbox).
 
 ## Prerequisites

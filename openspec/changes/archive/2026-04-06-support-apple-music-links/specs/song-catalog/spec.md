@@ -1,8 +1,5 @@
-# song-catalog Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change musicboxx-pwa. Update Purpose after archive.
-## Requirements
 ### Requirement: Paste YouTube URL to add a song
 
 The system SHALL accept a pasted URL from the user that identifies a **YouTube video**, a **Spotify track** (see `spotify-links` capability), or an **Apple Music track** (see `apple-music-links` capability) and SHALL derive a canonical **video ID** for YouTube, a canonical **Spotify track id** for Spotify, or a canonical **Apple Music track id** for Apple Music when the URL matches a supported pattern.
@@ -102,15 +99,6 @@ The system SHALL provide an action to open the song’s playback destination in 
 
 - **WHEN** the user invokes “Open in Apple Music” (or equivalent) on an Apple Music–backed song
 - **THEN** the system navigates externally to the correct `music.apple.com` URL for that track
-
-### Requirement: Persist songs locally
-
-The system SHALL persist all song records in **browser local storage** (IndexedDB or equivalent) so that data survives reloads and PWA restarts on the same origin and profile.
-
-#### Scenario: Reload app
-
-- **WHEN** the user reloads or reopens the installed PWA
-- **THEN** previously saved songs appear with stored metadata and thumbnails as defined in this spec
 
 ### Requirement: Add song via system share of a URL
 

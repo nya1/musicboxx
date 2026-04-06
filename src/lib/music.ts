@@ -1,3 +1,4 @@
+import { parseAppleMusicFromInput } from './appleMusic';
 import { parseSpotifyTrackId } from './spotify';
 import { parseYouTubeVideoId } from './youtube';
 
@@ -5,14 +6,15 @@ const URL_IN_TEXT_RE = /https?:\/\/[^\s<>"']+/gi;
 
 export type ParsedMusic =
   | { provider: 'youtube'; videoId: string }
-  | { provider: 'spotify'; trackId: string };
+  | { provider: 'spotify'; trackId: string }
+  | { provider: 'apple-music'; trackId: string; openUrl: string };
 
 export function songCatalogKey(provider: ParsedMusic['provider'], id: string): string {
   return `${provider}:${id}`;
 }
 
 /**
- * Resolve YouTube or Spotify from pasted text (URL or raw id where supported).
+ * Resolve YouTube, Spotify, or Apple Music from pasted text (URL or raw id where supported).
  */
 export function parseMusicFromInput(input: string): ParsedMusic | null {
   const trimmed = input.trim();
@@ -21,6 +23,8 @@ export function parseMusicFromInput(input: string): ParsedMusic | null {
   if (yt) return { provider: 'youtube', videoId: yt };
   const sp = parseSpotifyTrackId(trimmed);
   if (sp) return { provider: 'spotify', trackId: sp };
+  const am = parseAppleMusicFromInput(trimmed);
+  if (am) return { provider: 'apple-music', trackId: am.trackId, openUrl: am.openUrl };
   return null;
 }
 
@@ -33,7 +37,7 @@ function tryDecode(raw: string): string {
 }
 
 /**
- * Resolve a music link from Web Share Target params (YouTube or Spotify).
+ * Resolve a music link from Web Share Target params (YouTube, Spotify, or Apple Music).
  * Prefers `url`, then whole `text`, then first URL found in `text`.
  */
 export function parseMusicFromSharePayload(

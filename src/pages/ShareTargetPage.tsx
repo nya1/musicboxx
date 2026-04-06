@@ -25,7 +25,9 @@ export function ShareTargetPage() {
     async function run() {
       const parsed = parseMusicFromSharePayload(url, text);
       if (!parsed) {
-        setError('That doesn’t look like a supported YouTube or Spotify track link.');
+        setError(
+          'That doesn’t look like a supported YouTube, Spotify, or Apple Music track link.'
+        );
         setPending(false);
         return;
       }
