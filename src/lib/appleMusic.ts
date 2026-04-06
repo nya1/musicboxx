@@ -46,7 +46,17 @@ export type AppleMusicMetadata = {
   title: string;
   author?: string;
   thumbnailUrl?: string;
+  albumTitle?: string;
+  durationMs?: number;
+  isrc?: string;
+  releaseYear?: number;
 };
+
+function releaseYearFromDate(releaseDate: string | undefined): number | undefined {
+  if (!releaseDate) return undefined;
+  const y = parseInt(releaseDate.slice(0, 4), 10);
+  return Number.isFinite(y) && y >= 1000 && y <= 9999 ? y : undefined;
+}
 
 /**
  * Public iTunes Lookup JSON — no API key. Same catalog ids often match Apple Music web track ids.
@@ -66,9 +76,14 @@ export async function fetchAppleMusicMetadata(trackId: string): Promise<AppleMus
         artistName?: string;
         artworkUrl100?: string;
         kind?: string;
+        trackTimeMillis?: number;
+        isrc?: string;
+        releaseDate?: string;
       }>;
     };
-    const r = data.results?.[0];
+    const results = data.results ?? [];
+    const r =
+      results.find((x) => x.kind === 'song') ?? results.find((x) => x.trackName) ?? results[0];
     if (!r) return fallback;
 
     const title =
@@ -80,7 +95,23 @@ export async function fetchAppleMusicMetadata(trackId: string): Promise<AppleMus
       thumbnailUrl = r.artworkUrl100.replace(/100x100bb/g, '600x600bb');
     }
 
-    return { title, author, thumbnailUrl };
+    const albumTitle = r.collectionName?.trim();
+    const durationMs =
+      typeof r.trackTimeMillis === 'number' && r.trackTimeMillis > 0
+        ? r.trackTimeMillis
+        : undefined;
+    const isrc = r.isrc?.trim();
+    const releaseYear = releaseYearFromDate(r.releaseDate);
+
+    return {
+      title,
+      author,
+      thumbnailUrl,
+      albumTitle,
+      durationMs,
+      isrc,
+      releaseYear,
+    };
   } catch {
     return fallback;
   }

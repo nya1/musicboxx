@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { type ParsedMusic, songCatalogKey } from '../lib/music';
 import { fetchAppleMusicMetadata } from '../lib/appleMusic';
+import { normalizePrimaryArtist } from '../lib/songMetadata';
 import { fetchSpotifyOembed } from '../lib/spotify';
 
 export const FAVORITES_PLAYLIST_ID = 'favorites';
@@ -82,6 +83,12 @@ export interface Song {
   appleMusicOpenUrl?: string;
   title: string;
   author?: string;
+  /** Normalized performer/channel for search; optional enrichment from public metadata. */
+  primaryArtist?: string;
+  albumTitle?: string;
+  durationMs?: number;
+  isrc?: string;
+  releaseYear?: number;
   /** Spotify / Apple Music metadata cover; YouTube uses img.youtube.com from `videoId`. */
   thumbnailUrl?: string;
   createdAt: number;
@@ -169,6 +176,12 @@ export class MusicboxxDB extends Dexie {
       });
     this.version(6).stores({
       songs: '++id, catalogKey, createdAt, appleMusicTrackId',
+      playlists: 'id, name, isSystem, createdAt, parentId',
+      playlistSongs: '[playlistId+songId], playlistId, songId',
+      settings: 'key',
+    });
+    this.version(7).stores({
+      songs: '++id, catalogKey, createdAt, appleMusicTrackId, primaryArtist, title',
       playlists: 'id, name, isSystem, createdAt, parentId',
       playlistSongs: '[playlistId+songId], playlistId, songId',
       settings: 'key',
@@ -513,6 +526,7 @@ export async function addSongFromParsed(
       videoId,
       title,
       author,
+      primaryArtist: normalizePrimaryArtist(author),
       createdAt: Date.now(),
     };
 
@@ -550,6 +564,7 @@ export async function addSongFromParsed(
       spotifyTrackId: trackId,
       title,
       author,
+      primaryArtist: normalizePrimaryArtist(author),
       thumbnailUrl,
       createdAt: Date.now(),
     };
@@ -570,6 +585,10 @@ export async function addSongFromParsed(
 
   const trackId = parsed.trackId;
   const openUrl = parsed.openUrl;
+  let albumTitle: string | undefined;
+  let durationMs: number | undefined;
+  let isrc: string | undefined;
+  let releaseYear: number | undefined;
   if (!title) title = 'Apple Music track';
   if (!titleHint) {
     try {
@@ -577,6 +596,10 @@ export async function addSongFromParsed(
       if (o.title) title = o.title;
       if (o.author) author = o.author;
       if (o.thumbnailUrl) thumbnailUrl = o.thumbnailUrl;
+      albumTitle = o.albumTitle;
+      durationMs = o.durationMs;
+      isrc = o.isrc;
+      releaseYear = o.releaseYear;
     } catch {
       /* keep fallback */
     }
@@ -589,6 +612,11 @@ export async function addSongFromParsed(
     appleMusicOpenUrl: openUrl,
     title,
     author,
+    primaryArtist: normalizePrimaryArtist(author),
+    albumTitle,
+    durationMs,
+    isrc,
+    releaseYear,
     thumbnailUrl,
     createdAt: Date.now(),
   };
