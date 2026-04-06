@@ -11,7 +11,7 @@ Context for AI coding agents working on **Musicboxx**. Format follows [AGENTS.md
 
 ## Prerequisites
 
-- **Node.js** 25+ (see `engines` in `package.json`; `.nvmrc` pins `25` for **nvm**).
+- **Node.js** 25+ (see `engines` in `package.json`; `.nvmrc` pins `25` for **nvm**). Use `nvm use 25` to set the correct node version before any node/pnpm related commands.
 - **pnpm** — this repo uses `pnpm-lock.yaml`; use **`pnpm install`** locally and **`pnpm install --frozen-lockfile`** in CI.
 
 ## Commands

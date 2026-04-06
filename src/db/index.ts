@@ -332,6 +332,26 @@ export async function bootstrapDb(database: MusicboxxDB = db): Promise<void> {
   }
 }
 
+/**
+ * Clears all library tables and re-seeds Favorites and default playlist settings in one transaction.
+ */
+export async function clearLibraryData(database: MusicboxxDB = db): Promise<void> {
+  await database.transaction(
+    'rw',
+    database.songs,
+    database.playlists,
+    database.playlistSongs,
+    database.settings,
+    async () => {
+      await database.songs.clear();
+      await database.playlists.clear();
+      await database.playlistSongs.clear();
+      await database.settings.clear();
+      await bootstrapDb(database);
+    }
+  );
+}
+
 /** Playlist id that receives new songs from `addSongFromParsed` (falls back if setting missing or stale). */
 export async function getDefaultPlaylistId(): Promise<string> {
   const row = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);

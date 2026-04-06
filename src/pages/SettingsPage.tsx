@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/Modal';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { db } from '../db';
+import { clearLibraryData, db } from '../db';
 import {
   downloadLibraryExportFile,
   exportLibrarySnapshot,
@@ -18,7 +18,12 @@ export function SettingsPage() {
   const [pendingImport, setPendingImport] = useState<LibraryExportDocument | null>(null);
   const [importWorking, setImportWorking] = useState(false);
   const [exportWorking, setExportWorking] = useState(false);
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [clearDeleteInput, setClearDeleteInput] = useState('');
+  const [clearWorking, setClearWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  const clearConfirmEnabled = clearDeleteInput.trim() === 'delete';
 
   async function handleExport() {
     setStatusMessage(null);
@@ -86,6 +91,36 @@ export function SettingsPage() {
     }
   }
 
+  function openClearModal() {
+    setStatusMessage(null);
+    setClearDeleteInput('');
+    setClearModalOpen(true);
+  }
+
+  function closeClearModal() {
+    if (clearWorking) return;
+    setClearModalOpen(false);
+    setClearDeleteInput('');
+  }
+
+  async function confirmClearLibrary() {
+    if (!clearConfirmEnabled) return;
+    setClearWorking(true);
+    try {
+      await clearLibraryData(db);
+      setClearModalOpen(false);
+      setClearDeleteInput('');
+      navigate('/', { replace: true });
+    } catch (e) {
+      setStatusMessage({
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Could not clear library.',
+      });
+    } finally {
+      setClearWorking(false);
+    }
+  }
+
   return (
     <div>
       <h1 className="page-title">Settings</h1>
@@ -109,7 +144,8 @@ export function SettingsPage() {
         </h2>
         <p className="muted settings-data-lead">
           Export a JSON backup of your library, or import a file you exported from Musicboxx on this or another
-          device. Export first if you need a copy before replacing data. Cloud backup is not available yet.
+          device. Export first if you need a copy before replacing or clearing data. Clearing removes all songs and
+          playlists from this device (except a fresh Favorites playlist). Cloud backup is not available yet.
         </p>
         {statusMessage ? (
           <p
@@ -144,6 +180,9 @@ export function SettingsPage() {
           <button type="button" className="btn btn--secondary" onClick={openImportPicker}>
             Import library…
           </button>
+          <button type="button" className="btn btn--danger" onClick={openClearModal}>
+            Clear local library…
+          </button>
         </div>
       </section>
 
@@ -159,6 +198,43 @@ export function SettingsPage() {
             </button>
             <button type="button" className="btn btn--danger" onClick={confirmImport} disabled={importWorking}>
               {importWorking ? 'Importing…' : 'Replace library'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={clearModalOpen} onClose={closeClearModal} title="Clear local library?">
+        <div className="stack">
+          <p>
+            This will <strong>permanently remove</strong> all songs and playlists stored in this browser. Export your
+            library first if you need a backup. Type <strong>delete</strong> below to confirm.
+          </p>
+          <div className="stack">
+            <label className="field__label" htmlFor="settings-clear-confirm">
+              Type delete to confirm
+            </label>
+            <input
+              id="settings-clear-confirm"
+              type="text"
+              className="input"
+              value={clearDeleteInput}
+              onChange={(e) => setClearDeleteInput(e.target.value)}
+              autoComplete="off"
+              disabled={clearWorking}
+              aria-invalid={clearDeleteInput.length > 0 && !clearConfirmEnabled}
+            />
+          </div>
+          <div className="modal-panel__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeClearModal} disabled={clearWorking}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={confirmClearLibrary}
+              disabled={clearWorking || !clearConfirmEnabled}
+            >
+              {clearWorking ? 'Clearing…' : 'Clear library'}
             </button>
           </div>
         </div>

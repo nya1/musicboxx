@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import * as db from '../db';
 import { Layout } from '../components/Layout';
 import { SettingsPage } from './SettingsPage';
 
@@ -26,6 +27,7 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: /^back up library/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /^export library/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /^import library/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^clear local library/i })).toBeEnabled();
   });
 
   it('shows Settings in primary navigation', () => {
@@ -60,5 +62,51 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByRole('dialog', { name: /replace library data/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^replace library$/i })).toBeInTheDocument();
+  });
+
+  it('opens clear confirmation and disables commit until the user types delete', async () => {
+    const user = userEvent.setup();
+    renderSettingsRoute();
+
+    await user.click(screen.getByRole('button', { name: /^clear local library/i }));
+
+    expect(await screen.findByRole('dialog', { name: /clear local library/i })).toBeInTheDocument();
+
+    const confirmBtn = screen.getByRole('button', { name: /^clear library$/i });
+    expect(confirmBtn).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/type delete to confirm/i), 'delet');
+    expect(confirmBtn).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/type delete to confirm/i), 'e');
+    expect(confirmBtn).toBeEnabled();
+  });
+
+  it('calls clearLibraryData when confirmed', async () => {
+    const spy = vi.spyOn(db, 'clearLibraryData').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderSettingsRoute();
+
+    await user.click(screen.getByRole('button', { name: /^clear local library/i }));
+    await user.type(screen.getByLabelText(/type delete to confirm/i), 'delete');
+    await user.click(screen.getByRole('button', { name: /^clear library$/i }));
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalled();
+    });
+    spy.mockRestore();
+  });
+
+  it('shows an error when clearLibraryData fails', async () => {
+    const spy = vi.spyOn(db, 'clearLibraryData').mockRejectedValueOnce(new Error('Clear failed.'));
+    const user = userEvent.setup();
+    renderSettingsRoute();
+
+    await user.click(screen.getByRole('button', { name: /^clear local library/i }));
+    await user.type(screen.getByLabelText(/type delete to confirm/i), 'delete');
+    await user.click(screen.getByRole('button', { name: /^clear library$/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Clear failed.');
+    spy.mockRestore();
   });
 });
