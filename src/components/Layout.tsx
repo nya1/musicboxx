@@ -1,4 +1,4 @@
-import { Library, ListMusic, Plus } from 'lucide-react';
+import { Library, ListMusic, Plus, Settings } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -45,6 +45,14 @@ export function Layout() {
         >
           <Plus {...navIcon} />
           <span className="bottom-nav__label">Add</span>
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => (isActive ? 'bottom-nav__link is-active' : 'bottom-nav__link')}
+          aria-label="Settings"
+        >
+          <Settings {...navIcon} />
+          <span className="bottom-nav__label">Settings</span>
         </NavLink>
       </nav>
     </div>

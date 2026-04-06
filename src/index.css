@@ -148,13 +148,14 @@ a:hover {
 
 .bottom-nav__link {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
   min-height: 44px;
-  padding: 6px 4px;
+  padding: 6px 2px;
   font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-muted);
@@ -168,6 +169,33 @@ a:hover {
 
 .bottom-nav__label {
   line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-appearance-row__label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.settings-data-lead {
+  margin: 0 0 16px;
+  line-height: 1.5;
+  font-size: 0.9375rem;
+}
+
+.settings-data-actions {
+  max-width: 280px;
 }
 
 .bottom-nav__link:hover {
