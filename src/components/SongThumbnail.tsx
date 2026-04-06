@@ -1,29 +1,45 @@
 import { useCallback, useState } from 'react';
+import type { Song } from '../db';
 import { thumbnailUrls } from '../lib/youtube';
 
 type Quality = 'maxres' | 'hq' | 'placeholder';
 
 export function SongThumbnail({
-  videoId,
+  song,
   alt,
   className,
 }: {
-  videoId: string;
+  song: Pick<Song, 'provider' | 'videoId' | 'thumbnailUrl'>;
   alt: string;
   className?: string;
 }) {
-  const { maxres, hq } = thumbnailUrls(videoId);
   const [q, setQ] = useState<Quality>('maxres');
 
   const onError = useCallback(() => {
     setQ((prev) => {
+      if (song.provider === 'spotify') return 'placeholder';
       if (prev === 'maxres') return 'hq';
       return 'placeholder';
     });
-  }, []);
+  }, [song.provider]);
 
-  const src =
-    q === 'placeholder' ? '/placeholder-cover.svg' : q === 'hq' ? hq : maxres;
+  let src: string;
+  if (song.provider === 'spotify') {
+    const tu = song.thumbnailUrl;
+    if (tu && q !== 'placeholder') {
+      src = tu;
+    } else {
+      src = '/placeholder-cover.svg';
+    }
+  } else {
+    const vid = song.videoId;
+    if (!vid) {
+      src = '/placeholder-cover.svg';
+    } else {
+      const { maxres, hq } = thumbnailUrls(vid);
+      src = q === 'placeholder' ? '/placeholder-cover.svg' : q === 'hq' ? hq : maxres;
+    }
+  }
 
   return (
     <img

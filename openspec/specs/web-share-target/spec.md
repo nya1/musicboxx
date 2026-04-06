@@ -18,17 +18,17 @@ The system SHALL handle navigation to the share target **action** URL when opene
 
 #### Scenario: Incoming share with URL parameter
 
-- **WHEN** the share target URL is opened with a `url` query parameter containing a supported YouTube link
+- **WHEN** the share target URL is opened with a `url` query parameter containing a supported **YouTube** link or **Spotify track** link
 - **THEN** the application uses that value as input to the same add-song processing as manual URL entry
 
 #### Scenario: Incoming share with text only
 
-- **WHEN** the share target URL is opened such that a YouTube link appears in `text` but not in `url`
-- **THEN** the application extracts a supported YouTube URL from `text` and proceeds with add-song processing
+- **WHEN** the share target URL is opened such that a YouTube link or Spotify track link appears in `text` but not in `url`
+- **THEN** the application extracts a supported URL from `text` and proceeds with add-song processing
 
-#### Scenario: Incoming share with no usable YouTube URL
+#### Scenario: Incoming share with no usable music URL
 
-- **WHEN** neither `url` nor `text` yields a supported YouTube URL after extraction
+- **WHEN** neither `url` nor `text` yields a supported YouTube URL or Spotify track URL/URI after extraction
 - **THEN** the application shows a clear validation error and SHALL NOT create a song record
 
 ### Requirement: Platform expectations documented for authors

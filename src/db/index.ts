@@ -1,4 +1,6 @@
 import Dexie, { type Table } from 'dexie';
+import { type ParsedMusic, songCatalogKey } from '../lib/music';
+import { fetchSpotifyOembed } from '../lib/spotify';
 
 export const FAVORITES_PLAYLIST_ID = 'favorites';
 
@@ -65,11 +67,19 @@ export class PlaylistDeleteError extends Error {
   }
 }
 
+export type SongProvider = 'youtube' | 'spotify';
+
 export interface Song {
   id?: number;
-  videoId: string;
+  provider: SongProvider;
+  /** Indexed unique key: `youtube:VIDEO_ID` or `spotify:TRACK_ID`. */
+  catalogKey: string;
+  videoId?: string;
+  spotifyTrackId?: string;
   title: string;
   author?: string;
+  /** Spotify oEmbed cover; YouTube uses img.youtube.com from `videoId`. */
+  thumbnailUrl?: string;
   createdAt: number;
 }
 
@@ -142,6 +152,17 @@ export class MusicboxxDB extends Dexie {
       playlistSongs: '[playlistId+songId], playlistId, songId',
       settings: 'key',
     });
+    this.version(5)
+      .stores({
+        songs: '++id, catalogKey, createdAt',
+        playlists: 'id, name, isSystem, createdAt, parentId',
+        playlistSongs: '[playlistId+songId], playlistId, songId',
+        settings: 'key',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('songs').clear();
+        await tx.table('playlistSongs').clear();
+      });
   }
 }
 
@@ -288,7 +309,7 @@ export async function bootstrapDb(): Promise<void> {
   }
 }
 
-/** Playlist id that receives new songs from `addSongFromVideoId` (falls back if setting missing or stale). */
+/** Playlist id that receives new songs from `addSongFromParsed` (falls back if setting missing or stale). */
 export async function getDefaultPlaylistId(): Promise<string> {
   const row = await db.settings.get(DEFAULT_PLAYLIST_SETTING_KEY);
   const id = row?.value;
@@ -393,8 +414,12 @@ export async function deletePlaylist(playlistId: string): Promise<void> {
   });
 }
 
+export async function getSongByCatalogKey(catalogKey: string): Promise<Song | undefined> {
+  return db.songs.where('catalogKey').equals(catalogKey).first();
+}
+
 export async function getSongByVideoId(videoId: string): Promise<Song | undefined> {
-  return db.songs.where('videoId').equals(videoId).first();
+  return getSongByCatalogKey(songCatalogKey('youtube', videoId));
 }
 
 export async function addSongToPlaylist(playlistId: string, songId: number): Promise<void> {
@@ -437,52 +462,105 @@ export type AddSongResult =
   | { ok: true; song: Song; duplicate: true }
   | { ok: false; error: 'invalid_url' | 'network' };
 
+export async function addSongFromParsed(
+  parsed: ParsedMusic,
+  titleHint?: string,
+  authorHint?: string
+): Promise<AddSongResult> {
+  const idStr = parsed.provider === 'youtube' ? parsed.videoId : parsed.trackId;
+  const catalogKey = songCatalogKey(parsed.provider, idStr);
+  const existing = await getSongByCatalogKey(catalogKey);
+  if (existing?.id != null) {
+    return { ok: true, song: existing as Song, duplicate: true };
+  }
+
+  let title = titleHint?.trim();
+  let author = authorHint;
+  let thumbnailUrl: string | undefined;
+
+  if (parsed.provider === 'youtube') {
+    const videoId = parsed.videoId;
+    if (!title) title = 'YouTube video';
+    if (!titleHint) {
+      const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      try {
+        const res = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { title?: string; author_name?: string };
+          if (data.title) title = data.title;
+          if (data.author_name) author = data.author_name;
+        }
+      } catch {
+        /* keep fallback title */
+      }
+    }
+
+    const song: Song = {
+      provider: 'youtube',
+      catalogKey,
+      videoId,
+      title,
+      author,
+      createdAt: Date.now(),
+    };
+
+    const defaultPl = await getDefaultPlaylistId();
+    const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
+      const nid = await db.songs.add(song);
+      await addSongToPlaylist(defaultPl, nid as number);
+      return nid as number;
+    });
+
+    return {
+      ok: true,
+      song: { ...song, id: newId },
+      duplicate: false,
+    };
+  }
+
+  const trackId = parsed.trackId;
+  if (!title) title = 'Spotify track';
+  if (!titleHint) {
+    try {
+      const o = await fetchSpotifyOembed(trackId);
+      if (o.title) title = o.title;
+      if (o.author) author = o.author;
+      if (o.thumbnailUrl) thumbnailUrl = o.thumbnailUrl;
+    } catch {
+      /* keep fallback */
+    }
+  }
+
+  const song: Song = {
+    provider: 'spotify',
+    catalogKey,
+    spotifyTrackId: trackId,
+    title,
+    author,
+    thumbnailUrl,
+    createdAt: Date.now(),
+  };
+
+  const defaultPl = await getDefaultPlaylistId();
+  const newId = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
+    const nid = await db.songs.add(song);
+    await addSongToPlaylist(defaultPl, nid as number);
+    return nid as number;
+  });
+
+  return {
+    ok: true,
+    song: { ...song, id: newId },
+    duplicate: false,
+  };
+}
+
 export async function addSongFromVideoId(
   videoId: string,
   titleHint?: string,
   authorHint?: string
 ): Promise<AddSongResult> {
-  const existing = await getSongByVideoId(videoId);
-  if (existing?.id != null) {
-    return { ok: true, song: existing as Song, duplicate: true };
-  }
-
-  let title = titleHint?.trim() || 'YouTube video';
-  let author = authorHint;
-
-  if (!titleHint) {
-    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    try {
-      const res = await fetch(
-        `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { title?: string; author_name?: string };
-        if (data.title) title = data.title;
-        if (data.author_name) author = data.author_name;
-      }
-    } catch {
-      /* keep fallback title */
-    }
-  }
-
-  const song: Song = {
-    videoId,
-    title,
-    author,
-    createdAt: Date.now(),
-  };
-
-  const defaultPl = await getDefaultPlaylistId();
-  const id = await db.transaction('rw', db.songs, db.playlistSongs, async () => {
-    const newId = await db.songs.add(song);
-    await addSongToPlaylist(defaultPl, newId as number);
-    return newId as number;
-  });
-
-  return {
-    ok: true,
-    song: { ...song, id },
-    duplicate: false,
-  };
+  return addSongFromParsed({ provider: 'youtube', videoId }, titleHint, authorHint);
 }

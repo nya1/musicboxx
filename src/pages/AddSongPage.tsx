@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { addSongFromVideoId } from '../db';
-import { parseYouTubeVideoId } from '../lib/youtube';
+import { addSongFromParsed } from '../db';
+import { parseMusicFromInput } from '../lib/music';
 
 export function AddSongPage() {
   const [url, setUrl] = useState('');
@@ -14,20 +14,20 @@ export function AddSongPage() {
     e.preventDefault();
     setError(null);
     setInfo(null);
-    const videoId = parseYouTubeVideoId(url);
-    if (!videoId) {
-      setError('That doesn’t look like a supported YouTube URL or video ID.');
+    const parsed = parseMusicFromInput(url);
+    if (!parsed) {
+      setError('That doesn’t look like a supported YouTube or Spotify track link.');
       return;
     }
     setPending(true);
     try {
-      const result = await addSongFromVideoId(videoId);
+      const result = await addSongFromParsed(parsed);
       if (!result.ok) {
         setError('Couldn’t save the song. Check your connection and try again.');
         return;
       }
       if (result.duplicate) {
-        setInfo('That video is already in your library. Open it from Library.');
+        setInfo('That track is already in your library. Open it from Library.');
         setUrl('');
         return;
       }
@@ -42,17 +42,17 @@ export function AddSongPage() {
     <div>
       <h1 className="page-title">Add song</h1>
       <p className="muted page-lead">
-        Paste a full YouTube link or an 11-character video ID. We’ll fetch the title when you’re
-        online.
+        Paste a full YouTube or Spotify track link (or an 11-character YouTube video ID). We’ll fetch
+        the title when you’re online.
       </p>
-      <form onSubmit={onSubmit} className="stack" aria-label="Add song from YouTube URL">
+      <form onSubmit={onSubmit} className="stack" aria-label="Add song from music URL">
         <label className="field">
-          <span className="field__label">YouTube URL</span>
+          <span className="field__label">Track URL</span>
           <input
             className="input"
             type="url"
             inputMode="url"
-            placeholder="https://www.youtube.com/watch?v=…"
+            placeholder="YouTube or Spotify track link…"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             autoComplete="off"
@@ -72,7 +72,7 @@ export function AddSongPage() {
           </p>
         ) : null}
         <button type="submit" className="btn btn--primary" disabled={pending}>
-          {pending ? 'Saving…' : 'Save to Favorites'}
+          {pending ? 'Saving…' : 'Save to default playlist'}
         </button>
       </form>
     </div>

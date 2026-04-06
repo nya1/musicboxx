@@ -197,7 +197,7 @@ export function PlaylistDetailPage() {
                   <div className="playlist-song-row">
                     <Link to={`/song/${song.id}`} className="song-row song-row--grow">
                       <SongThumbnail
-                        videoId={song.videoId}
+                        song={song}
                         alt=""
                         className="song-row__thumb"
                       />

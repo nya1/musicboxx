@@ -15,8 +15,8 @@ export function LibraryPage() {
       <div className="empty-state">
         <h1 className="empty-state__title">No songs yet</h1>
         <p className="empty-state__body muted">
-          Paste a YouTube link on the Add tab. Titles load when you’re online; songs still save if
-          metadata can’t be fetched.
+          Paste a YouTube or Spotify track link on the Add tab. Titles load when you’re online; songs
+          still save if metadata can’t be fetched.
         </p>
         <Link to="/add" className="btn btn--primary">
           Add a song
@@ -33,7 +33,7 @@ export function LibraryPage() {
           <li key={song.id}>
             <Link to={`/song/${song.id}`} className="song-row">
               <SongThumbnail
-                videoId={song.videoId}
+                song={song}
                 alt=""
                 className="song-row__thumb"
               />
@@ -42,7 +42,9 @@ export function LibraryPage() {
                 {song.author ? (
                   <span className="song-row__meta muted">{song.author}</span>
                 ) : (
-                  <span className="song-row__meta muted">YouTube</span>
+                  <span className="song-row__meta muted">
+                    {song.provider === 'spotify' ? 'Spotify' : 'YouTube'}
+                  </span>
                 )}
               </div>
             </Link>

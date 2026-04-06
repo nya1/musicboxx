@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { addSongFromVideoId } from '../db';
-import { parseYouTubeVideoIdFromSharePayload } from '../lib/youtube';
+import { addSongFromParsed } from '../db';
+import { parseMusicFromSharePayload } from '../lib/music';
 
 /**
  * Handles Web Share Target GET launches (see manifest `share_target`).
@@ -23,14 +23,14 @@ export function ShareTargetPage() {
     let cancelled = false;
 
     async function run() {
-      const videoId = parseYouTubeVideoIdFromSharePayload(url, text);
-      if (!videoId) {
-        setError('That doesn’t look like a supported YouTube URL or video ID.');
+      const parsed = parseMusicFromSharePayload(url, text);
+      if (!parsed) {
+        setError('That doesn’t look like a supported YouTube or Spotify track link.');
         setPending(false);
         return;
       }
 
-      const result = await addSongFromVideoId(videoId);
+      const result = await addSongFromParsed(parsed);
       if (cancelled) return;
 
       if (!result.ok) {
@@ -40,7 +40,7 @@ export function ShareTargetPage() {
       }
 
       if (result.duplicate && result.song.id != null) {
-        setInfo('That video is already in your library. Open it from Library.');
+        setInfo('That track is already in your library. Open it from Library.');
         setDuplicateSongId(result.song.id);
         setPending(false);
         return;

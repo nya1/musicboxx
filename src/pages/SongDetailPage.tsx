@@ -8,6 +8,7 @@ import {
   removeSongFromPlaylist,
 } from '../db';
 import { SongThumbnail } from '../components/SongThumbnail';
+import { spotifyOpenUrl } from '../lib/spotify';
 import { youtubeWatchUrl } from '../lib/youtube';
 
 export function SongDetailPage() {
@@ -44,7 +45,18 @@ export function SongDetailPage() {
     );
   }
 
-  const watch = youtubeWatchUrl(song.videoId);
+  const openUrl =
+    song.provider === 'youtube' && song.videoId
+      ? youtubeWatchUrl(song.videoId)
+      : song.provider === 'spotify' && song.spotifyTrackId
+        ? spotifyOpenUrl(song.spotifyTrackId)
+        : null;
+  const openLabel =
+    song.provider === 'spotify' ? 'Open in Spotify' : 'Open in YouTube';
+  const openAria =
+    song.provider === 'spotify'
+      ? `Open ${song.title} on Spotify (opens in a new tab)`
+      : `Open ${song.title} on YouTube (opens in a new tab)`;
   const addable = playlists
     .filter((p) => !memberships.includes(p.id))
     .sort((a, b) =>
@@ -60,22 +72,24 @@ export function SongDetailPage() {
       </Link>
       <article className="song-detail">
         <SongThumbnail
-          videoId={song.videoId}
+          song={song}
           alt={`Thumbnail for ${song.title}`}
           className="song-detail__cover"
         />
         <h1 className="song-detail__title">{song.title}</h1>
         {song.author ? <p className="song-detail__author muted">{song.author}</p> : null}
         <div className="song-detail__actions stack">
-          <a
-            className="btn btn--primary"
-            href={watch}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open ${song.title} on YouTube (opens in a new tab)`}
-          >
-            Open in YouTube
-          </a>
+          {openUrl ? (
+            <a
+              className="btn btn--primary"
+              href={openUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={openAria}
+            >
+              {openLabel}
+            </a>
+          ) : null}
         </div>
       </article>
 
