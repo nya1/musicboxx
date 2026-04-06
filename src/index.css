@@ -342,6 +342,19 @@ a:hover {
   width: 100%;
 }
 
+.btn--with-brand {
+  gap: 0.5rem;
+}
+
+/* Genius (Simple Icons default is light yellow): poor contrast on light secondary surfaces */
+.simple-brand-icon--genius svg path {
+  fill: var(--text);
+}
+
+[data-theme='dark'] .simple-brand-icon--genius svg path {
+  fill: #ffff64;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px 8px 24px;

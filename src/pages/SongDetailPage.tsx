@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useParams } from 'react-router-dom';
+import { siApplemusic, siGenius, siSpotify, siYoutube } from 'simple-icons';
 import {
   addSongToPlaylist,
   db,
@@ -7,6 +8,7 @@ import {
   getDefaultPlaylistId,
   removeSongFromPlaylist,
 } from '../db';
+import { SimpleBrandIcon } from '../components/SimpleBrandIcon';
 import { SongThumbnail } from '../components/SongThumbnail';
 import { geniusSearchUrl } from '../lib/geniusSearch';
 import { spotifyOpenUrl } from '../lib/spotify';
@@ -68,6 +70,12 @@ export function SongDetailPage() {
         : `Open ${song.title} on YouTube (opens in a new tab)`;
   const geniusUrl = geniusSearchUrl(song.title, song.author);
   const geniusAria = `Find lyrics for ${song.title} on Genius search (opens in a new tab)`;
+  const openBrandIcon =
+    song.provider === 'spotify'
+      ? siSpotify
+      : song.provider === 'apple-music'
+        ? siApplemusic
+        : siYoutube;
   const addable = playlists
     .filter((p) => !memberships.includes(p.id))
     .sort((a, b) =>
@@ -92,23 +100,25 @@ export function SongDetailPage() {
         <div className="song-detail__actions stack">
           {openUrl ? (
             <a
-              className="btn btn--primary"
+              className="btn btn--primary btn--with-brand"
               href={openUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={openAria}
             >
+              <SimpleBrandIcon icon={openBrandIcon} />
               {openLabel}
             </a>
           ) : null}
           {geniusUrl ? (
             <a
-              className="btn btn--secondary"
+              className="btn btn--secondary btn--with-brand"
               href={geniusUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={geniusAria}
             >
+              <SimpleBrandIcon icon={siGenius} className="simple-brand-icon--genius" />
               Find lyrics on Genius
             </a>
           ) : null}
