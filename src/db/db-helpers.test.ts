@@ -5,12 +5,14 @@ import {
   getDescendantPlaylistIds,
   getPlaylistAncestors,
   formatPlaylistPath,
+  getPlaylistSubtreeSongCounts,
   getValidMoveParentIds,
   getChildPlaylistsSorted,
   normalizePlaylistColor,
   isValidPlaylistColor,
   getPlaylistAccentColor,
   type Playlist,
+  type PlaylistSong,
 } from './index';
 
 function pl(
@@ -81,6 +83,29 @@ describe('formatPlaylistPath', () => {
     const root = pl('r', 'Root');
     const child = pl('c', 'Child', { parentId: 'r' });
     expect(formatPlaylistPath(child, [root, child])).toBe('Root / Child');
+  });
+});
+
+describe('getPlaylistSubtreeSongCounts', () => {
+  it('dedupes the same song id across playlist and child', () => {
+    const a = pl('a', 'A');
+    const b = pl('b', 'B', { parentId: 'a' });
+    const rows: PlaylistSong[] = [
+      { playlistId: 'a', songId: 1 },
+      { playlistId: 'b', songId: 1 },
+    ];
+    const counts = getPlaylistSubtreeSongCounts([a, b], rows);
+    expect(counts.get('a')).toBe(1);
+    expect(counts.get('b')).toBe(1);
+  });
+
+  it('includes child-only songs in parent count', () => {
+    const a = pl('a', 'A');
+    const b = pl('b', 'B', { parentId: 'a' });
+    const rows: PlaylistSong[] = [{ playlistId: 'b', songId: 2 }];
+    const counts = getPlaylistSubtreeSongCounts([a, b], rows);
+    expect(counts.get('a')).toBe(1);
+    expect(counts.get('b')).toBe(1);
   });
 });
 

@@ -312,6 +312,47 @@ export async function getDirectMemberSongIds(playlistId: string): Promise<Set<nu
   return new Set(rows.map((r) => r.songId));
 }
 
+/**
+ * Unique song counts per playlist id (subtree: playlist + descendants), matching
+ * {@link getSongsInPlaylistSubtreeDeduped} semantics.
+ */
+export function getPlaylistSubtreeSongCounts(
+  playlists: Playlist[],
+  membershipRows: PlaylistSong[]
+): Map<string, number> {
+  const directByPlaylist = new Map<string, Set<number>>();
+  for (const r of membershipRows) {
+    let set = directByPlaylist.get(r.playlistId);
+    if (!set) {
+      set = new Set<number>();
+      directByPlaylist.set(r.playlistId, set);
+    }
+    set.add(r.songId);
+  }
+  const counts = new Map<string, number>();
+  for (const p of playlists) {
+    const desc = getDescendantPlaylistIds(p.id, playlists);
+    const songIds = new Set<number>();
+    for (const pid of desc) {
+      const direct = directByPlaylist.get(pid);
+      if (direct) {
+        for (const sid of direct) {
+          songIds.add(sid);
+        }
+      }
+    }
+    counts.set(p.id, songIds.size);
+  }
+  return counts;
+}
+
+/** Same wording as playlist detail / playlists list song counts. */
+export function formatPlaylistSongCountLabel(count: number): string {
+  if (count === 0) return 'No songs';
+  if (count === 1) return '1 song';
+  return `${count} songs`;
+}
+
 export async function bootstrapDb(database: MusicboxxDB = db): Promise<void> {
   const n = await database.playlists.count();
   if (n === 0) {

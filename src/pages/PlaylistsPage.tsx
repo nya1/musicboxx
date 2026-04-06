@@ -11,8 +11,10 @@ import {
   createPlaylist,
   db,
   FAVORITES_PLAYLIST_ID,
+  formatPlaylistSongCountLabel,
   getDefaultPlaylistId,
   getPlaylistAccentColor,
+  getPlaylistSubtreeSongCounts,
   PlaylistParentError,
   setDefaultPlaylist,
   type Playlist,
@@ -20,6 +22,7 @@ import {
 
 function PlaylistTreeItems({
   playlists,
+  songCounts,
   parentId,
   defaultPlaylistId,
   onAddChild,
@@ -30,6 +33,7 @@ function PlaylistTreeItems({
   onChangeColor,
 }: {
   playlists: Playlist[];
+  songCounts: Map<string, number>;
   parentId: string | undefined;
   defaultPlaylistId: string;
   onAddChild: (playlist: Playlist) => void;
@@ -66,7 +70,12 @@ function PlaylistTreeItems({
             }
           >
             <Link to={`/playlist/${p.id}`} className="playlist-row__link">
-              <span className="playlist-row__name">{p.name}</span>
+              <span className="playlist-row__link-text">
+                <span className="playlist-row__name">{p.name}</span>
+                <span className="playlist-row__count muted">
+                  {formatPlaylistSongCountLabel(songCounts.get(p.id) ?? 0)}
+                </span>
+              </span>
               {p.id === defaultPlaylistId ? <span className="badge">Default</span> : null}
             </Link>
             <PlaylistOverflowMenu
@@ -83,6 +92,7 @@ function PlaylistTreeItems({
           </div>
           <PlaylistTreeItems
             playlists={playlists}
+            songCounts={songCounts}
             parentId={p.id}
             defaultPlaylistId={defaultPlaylistId}
             onAddChild={onAddChild}
@@ -99,7 +109,14 @@ function PlaylistTreeItems({
 }
 
 export function PlaylistsPage() {
-  const playlists = useLiveQuery(() => db.playlists.orderBy('createdAt').toArray(), []);
+  const playlistBundle = useLiveQuery(async () => {
+    const [playlists, rows] = await Promise.all([
+      db.playlists.orderBy('createdAt').toArray(),
+      db.playlistSongs.toArray(),
+    ]);
+    const songCounts = getPlaylistSubtreeSongCounts(playlists, rows);
+    return { playlists, songCounts };
+  });
   const defaultPlaylistId =
     useLiveQuery(() => getDefaultPlaylistId(), []) ?? FAVORITES_PLAYLIST_ID;
   const [name, setName] = useState('');
@@ -134,10 +151,11 @@ export function PlaylistsPage() {
     await setDefaultPlaylist(p.id);
   }
 
-  if (!playlists) {
+  if (!playlistBundle) {
     return <p className="muted">Loading…</p>;
   }
 
+  const { playlists, songCounts } = playlistBundle;
   const userPlaylists = playlists.filter((p) => !p.isSystem);
 
   return (
@@ -152,6 +170,7 @@ export function PlaylistsPage() {
       ) : null}
       <PlaylistTreeItems
         playlists={playlists}
+        songCounts={songCounts}
         parentId={undefined}
         defaultPlaylistId={defaultPlaylistId}
         onAddChild={(p) => setSubModal(p)}

@@ -11,6 +11,7 @@ import {
   getPlaylistAccentColor,
   getPlaylistAncestors,
   getSongsInPlaylistSubtreeDeduped,
+  formatPlaylistSongCountLabel,
   removeSongFromPlaylist,
   type Playlist,
   type Song,
@@ -78,8 +79,10 @@ export function PlaylistDetailPage() {
   const isDefaultPlaylist = playlist.id === defaultPlaylistId;
   const isFavorites = playlist.id === FAVORITES_PLAYLIST_ID;
   const hasChildren = children.length > 0;
-  const hasSongs = songs.length > 0;
+  const songCount = songs.length;
+  const hasSongs = songCount > 0;
   const isEmptySubtree = !hasChildren && !hasSongs;
+  const songCountLabel = formatPlaylistSongCountLabel(songCount);
 
   return (
     <div>
@@ -123,6 +126,9 @@ export function PlaylistDetailPage() {
           +
         </button>
       </div>
+      <p className="playlist-detail__song-count muted" aria-live="polite">
+        {songCountLabel}
+      </p>
 
       {addUnder ? (
         <CreateSubplaylistModal
