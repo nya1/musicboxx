@@ -15,6 +15,24 @@ export interface Playlist {
   name: string;
   isSystem: boolean;
   createdAt: number;
+  /** Parent playlist; top-level playlists omit this. */
+  parentId?: string;
+}
+
+export type PlaylistParentErrorCode =
+  | 'parent_not_found'
+  | 'favorites_cannot_have_parent'
+  | 'would_create_cycle'
+  | 'self_parent';
+
+export class PlaylistParentError extends Error {
+  constructor(
+    message: string,
+    public readonly code: PlaylistParentErrorCode
+  ) {
+    super(message);
+    this.name = 'PlaylistParentError';
+  }
 }
 
 export interface PlaylistSong {
@@ -34,10 +52,136 @@ export class MusicboxxDB extends Dexie {
       playlists: 'id, name, isSystem, createdAt',
       playlistSongs: '[playlistId+songId], playlistId, songId',
     });
+    this.version(2).stores({
+      songs: '++id, videoId, createdAt',
+      playlists: 'id, name, isSystem, createdAt, parentId',
+      playlistSongs: '[playlistId+songId], playlistId, songId',
+    });
   }
 }
 
 export const db = new MusicboxxDB();
+
+const TREE_ROOT_KEY = '__tree_root__';
+
+/** Groups playlists by parent id; root-level uses an internal sentinel key. */
+export function buildChildrenMap(playlists: Playlist[]): Map<string, Playlist[]> {
+  const map = new Map<string, Playlist[]>();
+  for (const p of playlists) {
+    const key = p.parentId ?? TREE_ROOT_KEY;
+    const list = map.get(key) ?? [];
+    list.push(p);
+    map.set(key, list);
+  }
+  return map;
+}
+
+/** All playlist ids in the subtree rooted at `rootId`, including `rootId`. In-memory walk. */
+export function getDescendantPlaylistIds(rootId: string, playlists: Playlist[]): Set<string> {
+  const byParent = buildChildrenMap(playlists);
+  const out = new Set<string>();
+  function walk(id: string) {
+    out.add(id);
+    for (const ch of byParent.get(id) ?? []) {
+      walk(ch.id);
+    }
+  }
+  walk(rootId);
+  return out;
+}
+
+/**
+ * Validates assigning `parentId` to `playlistId` (existing or about-to-exist row).
+ * Rejects missing parent, Favorites gaining a parent, self-parent, and cycles.
+ */
+export async function validateParentAssignment(
+  playlistId: string,
+  parentId: string | undefined
+): Promise<void> {
+  if (parentId === undefined) return;
+
+  const parent = await db.playlists.get(parentId);
+  if (!parent) {
+    throw new PlaylistParentError('Parent playlist does not exist.', 'parent_not_found');
+  }
+
+  if (playlistId === FAVORITES_PLAYLIST_ID) {
+    throw new PlaylistParentError('Favorites cannot be nested under another playlist.', 'favorites_cannot_have_parent');
+  }
+
+  if (playlistId === parentId) {
+    throw new PlaylistParentError('A playlist cannot be its own parent.', 'self_parent');
+  }
+
+  const all = await db.playlists.toArray();
+  const desc = getDescendantPlaylistIds(playlistId, all);
+  if (desc.has(parentId)) {
+    throw new PlaylistParentError('That would create a cycle in the playlist hierarchy.', 'would_create_cycle');
+  }
+}
+
+/**
+ * Ancestors from root to immediate parent (does not include `playlist`).
+ * Empty if the playlist is top-level.
+ */
+export function getPlaylistAncestors(playlist: Playlist, allPlaylists: Playlist[]): Playlist[] {
+  const map = new Map(allPlaylists.map((p) => [p.id, p]));
+  const ancestors: Playlist[] = [];
+  let parentId = playlist.parentId;
+  const visited = new Set<string>();
+  while (parentId != null && !visited.has(parentId)) {
+    visited.add(parentId);
+    const p = map.get(parentId);
+    if (!p) break;
+    ancestors.unshift(p);
+    parentId = p.parentId ?? undefined;
+  }
+  return ancestors;
+}
+
+/** Human-readable path: `Parent / Child / Leaf` */
+export function formatPlaylistPath(playlist: Playlist, allPlaylists: Playlist[]): string {
+  const map = new Map(allPlaylists.map((p) => [p.id, p]));
+  const parts: string[] = [];
+  let current: Playlist | undefined = playlist;
+  const visited = new Set<string>();
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    parts.unshift(current.name);
+    if (current.parentId == null) break;
+    current = map.get(current.parentId);
+  }
+  return parts.join(' / ');
+}
+
+export function getChildPlaylistsSorted(parentId: string, playlists: Playlist[]): Playlist[] {
+  return playlists
+    .filter((p) => p.parentId === parentId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/**
+ * Subtree songs for `playlistId`: direct and nested memberships, deduped by song id.
+ * Sort: song `createdAt` descending (stable product rule).
+ */
+export async function getSongsInPlaylistSubtreeDeduped(playlistId: string): Promise<Song[]> {
+  const allPlaylists = await db.playlists.toArray();
+  const descendantIds = getDescendantPlaylistIds(playlistId, allPlaylists);
+  const ids = [...descendantIds];
+  if (ids.length === 0) return [];
+
+  const rows = await db.playlistSongs.where('playlistId').anyOf(ids).toArray();
+  const uniqueSongIds = [...new Set(rows.map((r) => r.songId))];
+  const songs = await Promise.all(uniqueSongIds.map((sid) => db.songs.get(sid)));
+  const valid = songs.filter((s): s is Song => s != null && s.id != null);
+  valid.sort((a, b) => b.createdAt - a.createdAt);
+  return valid;
+}
+
+export async function getDirectMemberSongIds(playlistId: string): Promise<Set<number>> {
+  const rows = await db.playlistSongs.where('playlistId').equals(playlistId).toArray();
+  return new Set(rows.map((r) => r.songId));
+}
 
 export async function bootstrapDb(): Promise<void> {
   const n = await db.playlists.count();
@@ -72,16 +216,18 @@ export async function removeSongFromPlaylist(playlistId: string, songId: number)
     .delete();
 }
 
-export async function createPlaylist(name: string): Promise<Playlist> {
+export async function createPlaylist(name: string, parentId?: string): Promise<Playlist> {
   const id =
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `pl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  await validateParentAssignment(id, parentId);
   const playlist: Playlist = {
     id,
     name: name.trim(),
     isSystem: false,
     createdAt: Date.now(),
+    ...(parentId !== undefined ? { parentId } : {}),
   };
   await db.playlists.add(playlist);
   return playlist;

@@ -53,9 +53,11 @@ This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflo
 
 - Support Spotify links
 - Support Apple Music links
+- Open links to Genius
 - Backup local database
 - Export local database
 - Local search functionality
+- Share playlist
 
 
 ## License

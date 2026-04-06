@@ -1,48 +1,6 @@
-# playlists Specification
+# playlists (delta)
 
-## Purpose
-
-Playlists organize songs in Musicboxx: a default **Favorites** list, user-created playlists, optional **nesting** (parent/child), subtree views with deduplication, **ancestor links** on nested playlist detail, and local persistence in the browser.
-
-## Requirements
-
-### Requirement: Seed default Favorites playlist
-
-The system SHALL ensure a playlist named **Favorites** exists on first run (empty until the user adds songs). The **Favorites** playlist SHALL **not** have a parent playlist.
-
-#### Scenario: First launch
-
-- **WHEN** the application runs for the first time with no existing local data
-- **THEN** a playlist with the name “Favorites” exists and is treated as the default playlist
-- **AND** it has no parent playlist
-
-### Requirement: New songs belong to Favorites by default
-
-The system SHALL add every newly created song to the **Favorites** playlist membership.
-
-#### Scenario: Add song after first launch
-
-- **WHEN** a new song record is successfully created from a pasted URL
-- **THEN** that song is a member of the **Favorites** playlist
-
-### Requirement: User-created playlists
-
-The system SHALL allow the user to create additional playlists with a user-provided name. The user SHALL be able to create a playlist **optionally under** an existing parent playlist (subject to cycle and **Favorites** top-level rules). New playlists SHALL appear in the **hierarchical** playlist overview and SHALL be able to receive **direct** song assignments.
-
-#### Scenario: Create playlist
-
-- **WHEN** the user creates a playlist with a non-empty name
-- **THEN** a new playlist appears in the playlist overview and can receive **direct** song memberships
-
-#### Scenario: Create child playlist
-
-- **WHEN** the user creates a playlist with a non-empty name **and** an allowed parent playlist (e.g. via the nested-create control and modal, or equivalent)
-- **THEN** the new playlist is stored with that parent and appears under that parent in the overview
-
-#### Scenario: Reject empty name
-
-- **WHEN** the user attempts to create a playlist with an empty or whitespace-only name
-- **THEN** the system rejects the action with a clear validation message
+## ADDED Requirements
 
 ### Requirement: Hierarchical playlists
 
@@ -123,19 +81,36 @@ When the user views **playlist detail** for a playlist that has a **parent playl
 - **WHEN** the user opens playlist detail for a playlist with no parent playlist
 - **THEN** the ancestor navigation strip is not shown
 
-### Requirement: Organize songs across playlists
+## MODIFIED Requirements
 
-The system SHALL allow a song to be associated with **one or more** playlists (many-to-many), including **Favorites** and user playlists.
+### Requirement: Seed default Favorites playlist
 
-#### Scenario: Add song to another playlist
+The system SHALL ensure a playlist named **Favorites** exists on first run (empty until the user adds songs). The **Favorites** playlist SHALL **not** have a parent playlist.
 
-- **WHEN** the user adds an existing song to a user-created playlist
-- **THEN** the song remains in **Favorites** unless the user explicitly removes it from **Favorites**
+#### Scenario: First launch
 
-#### Scenario: Remove song from a playlist
+- **WHEN** the application runs for the first time with no existing local data
+- **THEN** a playlist with the name “Favorites” exists and is treated as the default playlist
+- **AND** it has no parent playlist
 
-- **WHEN** the user removes a song from a specific playlist
-- **THEN** the song is removed only from that playlist’s membership and remains stored in the catalog unless the user deletes the song globally (if such an action exists)
+### Requirement: User-created playlists
+
+The system SHALL allow the user to create additional playlists with a user-provided name. The user SHALL be able to create a playlist **optionally under** an existing parent playlist (subject to cycle and **Favorites** top-level rules). New playlists SHALL appear in the **hierarchical** playlist overview and SHALL be able to receive **direct** song assignments.
+
+#### Scenario: Create playlist
+
+- **WHEN** the user creates a playlist with a non-empty name
+- **THEN** a new playlist appears in the playlist overview and can receive **direct** song memberships
+
+#### Scenario: Create child playlist
+
+- **WHEN** the user creates a playlist with a non-empty name **and** an allowed parent playlist (e.g. via the nested-create control and modal, or equivalent)
+- **THEN** the new playlist is stored with that parent and appears under that parent in the overview
+
+#### Scenario: Reject empty name
+
+- **WHEN** the user attempts to create a playlist with an empty or whitespace-only name
+- **THEN** the system rejects the action with a clear validation message
 
 ### Requirement: Persist playlists locally
 

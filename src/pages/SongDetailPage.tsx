@@ -4,6 +4,7 @@ import {
   addSongToPlaylist,
   db,
   FAVORITES_PLAYLIST_ID,
+  formatPlaylistPath,
   removeSongFromPlaylist,
 } from '../db';
 import { SongThumbnail } from '../components/SongThumbnail';
@@ -43,7 +44,13 @@ export function SongDetailPage() {
   }
 
   const watch = youtubeWatchUrl(song.videoId);
-  const addable = playlists.filter((p) => !memberships.includes(p.id));
+  const addable = playlists
+    .filter((p) => !memberships.includes(p.id))
+    .sort((a, b) =>
+      formatPlaylistPath(a, playlists).localeCompare(formatPlaylistPath(b, playlists), undefined, {
+        sensitivity: 'base',
+      })
+    );
 
   return (
     <div>
@@ -82,13 +89,14 @@ export function SongDetailPage() {
             {memberships.map((pid) => {
               const pl = playlists.find((p) => p.id === pid);
               if (!pl) return null;
+              const label = formatPlaylistPath(pl, playlists);
               return (
                 <li key={pid} className="membership-row">
-                  <Link to={`/playlist/${pid}`}>{pl.name}</Link>
+                  <Link to={`/playlist/${pid}`}>{label}</Link>
                   <button
                     type="button"
                     className="btn btn--ghost btn--small"
-                    aria-label={`Remove ${song.title} from ${pl.name}`}
+                    aria-label={`Remove ${song.title} from ${label}`}
                     onClick={() => removeSongFromPlaylist(pid, song.id!)}
                   >
                     Remove
@@ -106,21 +114,24 @@ export function SongDetailPage() {
             Add to playlist
           </h2>
           <ul className="add-to-list" role="list">
-            {addable.map((pl) => (
-              <li key={pl.id}>
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--block"
-                  aria-label={`Add ${song.title} to ${pl.name}`}
-                  onClick={() => addSongToPlaylist(pl.id, song.id!)}
-                >
-                  Add to {pl.name}
-                  {pl.id === FAVORITES_PLAYLIST_ID ? (
-                    <span className="sr-only"> (default)</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
+            {addable.map((pl) => {
+              const label = formatPlaylistPath(pl, playlists);
+              return (
+                <li key={pl.id}>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--block"
+                    aria-label={`Add ${song.title} to ${label}`}
+                    onClick={() => addSongToPlaylist(pl.id, song.id!)}
+                  >
+                    Add to {label}
+                    {pl.id === FAVORITES_PLAYLIST_ID ? (
+                      <span className="sr-only"> (default)</span>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : (
