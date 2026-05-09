@@ -4,7 +4,7 @@
  * Normalization order (stable; extend with care):
  * 1. Trim and collapse internal whitespace.
  * 2. Author: strip trailing " - Topic" (YouTube auto-channel).
- * 3. Title: remove (Official Video|Audio|Lyric Video|Visualizer) and bracket forms.
+ * 3. Title: remove video/audio descriptor parentheticals and bracket forms.
  * 4. Title: remove parenthetical feat./ft./featuring segments, then unparenthesized tails.
  *
  * Manual QA cases: Topic author; title with (Official Video); title with (feat. …);
@@ -40,17 +40,17 @@ function normalizeAuthorForGenius(author: string): string {
   return collapseWhitespace(s);
 }
 
-const OFFICIAL_PAREN =
-  /\s*\(\s*(?:Official Video|Official Audio|Lyric Video|Visualizer)\s*\)/gi;
-const OFFICIAL_BRACKET =
-  /\s*\[\s*(?:Official Video|Official Audio|Lyric Video|Visualizer)\s*\]/gi;
+const VIDEO_DESC_PAREN =
+  /\s*\(\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video)|Official)\s*\)/gi;
+const VIDEO_DESC_BRACKET =
+  /\s*\[\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video)|Official)\s*\]/gi;
 const FEAT_PAREN = /\s*\(\s*(?:feat\.|ft\.|featuring)\b[^)]*\)/gi;
 const FEAT_TAIL = /\s+(?:feat\.|ft\.|featuring)\b[\s\S]*$/i;
 
 function normalizeTitleForGenius(title: string): string {
   let s = collapseWhitespace(title);
-  s = s.replace(OFFICIAL_PAREN, '');
-  s = s.replace(OFFICIAL_BRACKET, '');
+  s = s.replace(VIDEO_DESC_PAREN, '');
+  s = s.replace(VIDEO_DESC_BRACKET, '');
   s = s.replace(FEAT_PAREN, '');
   s = s.replace(FEAT_TAIL, '');
   return collapseWhitespace(s);

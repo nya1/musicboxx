@@ -21,6 +21,61 @@ describe('geniusSearchUrl', () => {
     expect(q).not.toMatch(/Official Video/i);
   });
 
+  it('strips (Official Music Video) from title', () => {
+    const u = geniusSearchUrl('Track (Official Music Video)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Audio) from title', () => {
+    const u = geniusSearchUrl('Track (Audio)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Lyrics) from title', () => {
+    const u = geniusSearchUrl('Track (Lyrics)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Official) from title', () => {
+    const u = geniusSearchUrl('Track (Official)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Music Video) from title', () => {
+    const u = geniusSearchUrl('Track (Music Video)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Performance Video) from title', () => {
+    const u = geniusSearchUrl('Track (Performance Video)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips bracket variants of video descriptors', () => {
+    const u = geniusSearchUrl('Track [Official Music Video]', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('does not strip non-video parentheticals', () => {
+    const u = geniusSearchUrl('Track (Remastered 2024)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track (Remastered 2024)');
+  });
+
+  it('strips (Visual Video) from title', () => {
+    const u = geniusSearchUrl('Track (Visual Video)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('strips (Visual) from title', () => {
+    const u = geniusSearchUrl('Track (Visual)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
+  it('still strips (Visualizer) correctly alongside new visual patterns', () => {
+    const u = geniusSearchUrl('Track (Visualizer)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
+  });
+
   it('returns null when nothing remains after normalization', () => {
     expect(geniusSearchUrl('   ', null)).toBeNull();
   });

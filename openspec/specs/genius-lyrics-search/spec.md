@@ -62,7 +62,7 @@ When the normalized **title** already contains the normalized **author** at the 
 Normalization SHALL **trim** leading and trailing whitespace and **collapse** consecutive internal whitespace to a single space. Additionally, the system SHALL remove common **non-essential** substrings that hurt lyric lookup:
 
 - From strings that correspond to the **author** role: a trailing **channel-style** suffix **` - Topic`** (case-insensitive).
-- From strings that correspond to the **title** role: parenthetical or bracketed labels such as **`(Official Video)`**, **`(Official Audio)`**, **`(Lyric Video)`**, and **`(Visualizer)`** (case-insensitive), and equivalent **square-bracket** forms when they appear as such boilerplate.
+- From strings that correspond to the **title** role: parenthetical or bracketed video/audio descriptor labels such as **`(Official Video)`**, **`(Official Music Video)`**, **`(Music Video)`**, **`(Audio)`**, **`(Official Audio)`**, **`(Lyric Video)`**, **`(Lyrics)`**, **`(Visualizer)`**, **`(Visual Video)`**, **`(Visual)`**, **`(Performance Video)`**, and **`(Official)`** (case-insensitive), and equivalent **square-bracket** forms when they appear as such boilerplate.
 - From the **title**: featured-performer tail clauses introduced by **`feat.`**, **`ft.`**, or **`featuring`** (case-insensitive), including typical parenthetical forms (e.g. trailing `(feat. …)`).
 
 The system SHALL apply these rules in a **documented order** so behavior is stable and testable.
