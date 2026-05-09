@@ -23,6 +23,32 @@ function collapseWhitespace(s: string): string {
  * True when the title already begins with the artist (e.g. YouTube "Artist - Song"),
  * so we should not prepend author again.
  */
+function levenshtein(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1,
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
 function titleAlreadyContainsLeadingArtist(author: string, title: string): boolean {
   const a = collapseWhitespace(author);
   const t = title.trim().toLowerCase();
@@ -34,16 +60,19 @@ function titleAlreadyContainsLeadingArtist(author: string, title: string): boole
     const wordLower = word.toLowerCase();
     const titleWordMatch = new RegExp(`(?:^|\\s)${escapeRegExp(wordLower)}(?:\\s|$)`, 'i');
     const titleLower = t;
-    const containsWord =
-      titleWordMatch.test(titleLower) ||
-      titleLower.includes(wordLower) ||
-      wordLower.startsWith(t.split(/\s+/)[0].toLowerCase());
-    if (containsWord) {
+    if (titleWordMatch.test(titleLower) || titleLower.includes(wordLower)) {
       return true;
     }
-    for (let len = 4; len <= wordLower.length; len++) {
-      if (titleLower.includes(wordLower.slice(0, len))) {
-        return true;
+    for (let len = Math.min(4, wordLower.length); len <= wordLower.length; len++) {
+      const prefix = wordLower.slice(0, len);
+      const maxDist = len <= 5 ? 1 : Math.floor(len / 5);
+      let pos = 0;
+      while (pos <= titleLower.length - len) {
+        const substr = titleLower.slice(pos, pos + len);
+        if (levenshtein(prefix, substr) <= maxDist) {
+          return true;
+        }
+        pos++;
       }
     }
   }

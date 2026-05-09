@@ -94,6 +94,12 @@ describe('geniusSearchUrl', () => {
     expect(q).toBe('Awesome Song by Test');
   });
 
+  it('allows one letter difference in author name', () => {
+    const u = geniusSearchUrl('Awesome Song by Test', 'T3stVEVO');
+    const q = new URL(u!).searchParams.get('q');
+    expect(q).toBe('Awesome Song by Test');
+  });
+
   it('returns null when nothing remains after normalization', () => {
     expect(geniusSearchUrl('   ', null)).toBeNull();
   });
