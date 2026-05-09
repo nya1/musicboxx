@@ -24,12 +24,30 @@ function collapseWhitespace(s: string): string {
  * so we should not prepend author again.
  */
 function titleAlreadyContainsLeadingArtist(author: string, title: string): boolean {
-  const a = author.trim();
-  const t = title.trim();
+  const a = collapseWhitespace(author);
+  const t = title.trim().toLowerCase();
   if (!a || !t) {
     return false;
   }
-  return new RegExp(`^${escapeRegExp(a)}(?:\\s*[-–:|]\\s*|\\s+|$)`, 'i').test(t);
+  const authorWords = a.split(/\s+/).filter((w) => w.length >= 3);
+  for (const word of authorWords) {
+    const wordLower = word.toLowerCase();
+    const titleWordMatch = new RegExp(`(?:^|\\s)${escapeRegExp(wordLower)}(?:\\s|$)`, 'i');
+    const titleLower = t;
+    const containsWord =
+      titleWordMatch.test(titleLower) ||
+      titleLower.includes(wordLower) ||
+      wordLower.startsWith(t.split(/\s+/)[0].toLowerCase());
+    if (containsWord) {
+      return true;
+    }
+    for (let len = 4; len <= wordLower.length; len++) {
+      if (titleLower.includes(wordLower.slice(0, len))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 const TOPIC_SUFFIX = /\s+-\s*Topic\s*$/i;

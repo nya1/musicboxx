@@ -76,6 +76,24 @@ describe('geniusSearchUrl', () => {
     expect(new URL(u!).searchParams.get('q')).toBe('Band Track');
   });
 
+  it('does not add VEVO suffix to genius link when artist is already in title', () => {
+    const u = geniusSearchUrl('Test - song name', 'TestVEVO');
+    const q = new URL(u!).searchParams.get('q');
+    expect(q).toBe('Test - song name');
+  });
+
+  it('does not add artist when name appears later in title', () => {
+    const u = geniusSearchUrl('Awesome Song by TestVEVO', 'TestVEVO');
+    const q = new URL(u!).searchParams.get('q');
+    expect(q).toBe('Awesome Song by TestVEVO');
+  });
+
+  it('does not add artist when name partially appears later in title', () => {
+    const u = geniusSearchUrl('Awesome Song by Test', 'TestVEVO');
+    const q = new URL(u!).searchParams.get('q');
+    expect(q).toBe('Awesome Song by Test');
+  });
+
   it('returns null when nothing remains after normalization', () => {
     expect(geniusSearchUrl('   ', null)).toBeNull();
   });
