@@ -167,41 +167,46 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <details className="settings-advanced mt-lg">
-        <summary className="settings-advanced__summary">Advanced</summary>
-        <div className="settings-advanced__body">
-          <p className="muted settings-data-lead">
-            YouTube playlist import uses a public Invidious API. Default instance:{' '}
-            <code>{DEFAULT_INVIDIOUS_BASE_URL}</code>. Set a custom base URL only if the default fails (e.g. CORS or
-            downtime). Leave the field empty and save to use the default.
-          </p>
-          {invidiousMessage ? (
-            <p
-              className={invidiousMessage.kind === 'error' ? 'form-error' : 'muted'}
-              role={invidiousMessage.kind === 'error' ? 'alert' : 'status'}
-            >
-              {invidiousMessage.text}
-            </p>
-          ) : null}
-          <div className="stack settings-advanced__fields">
-            <label className="field">
-              <span className="field__label">Invidious base URL (optional)</span>
-              <input
-                className="input"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                placeholder={DEFAULT_INVIDIOUS_BASE_URL}
-                value={invidiousInput}
-                onChange={(e) => setInvidiousInput(e.target.value)}
-              />
-            </label>
-            <button type="button" className="btn btn--secondary" onClick={() => void saveInvidiousOverride()}>
-              Save Invidious URL
-            </button>
-          </div>
-        </div>
-      </details>
+       <details className="settings-advanced mt-lg">
+         <summary className="settings-advanced__summary">Advanced</summary>
+         <div className="settings-advanced__body">
+           <p className="muted settings-data-lead">
+             YouTube playlist import uses a public Invidious API. Default instance:{' '}
+             <code>{DEFAULT_INVIDIOUS_BASE_URL}</code>. Set a custom base URL only if the default fails (e.g. CORS or
+             downtime). Leave the field empty and save to use the default.
+           </p>
+           {invidiousMessage ? (
+             <p
+               className={invidiousMessage.kind === 'error' ? 'form-error' : 'muted'}
+               role={invidiousMessage.kind === 'error' ? 'alert' : 'status'}
+             >
+               {invidiousMessage.text}
+             </p>
+           ) : null}
+           <div className="stack settings-advanced__fields">
+             <label className="field">
+               <span className="field__label">Invidious base URL (optional)</span>
+               <input
+                 className="input"
+                 type="url"
+                 inputMode="url"
+                 autoComplete="off"
+                 placeholder={DEFAULT_INVIDIOUS_BASE_URL}
+                 value={invidiousInput}
+                 onChange={(e) => setInvidiousInput(e.target.value)}
+               />
+             </label>
+             <button type="button" className="btn btn--secondary" onClick={() => void saveInvidiousOverride()}>
+               Save Invidious URL
+             </button>
+           </div>
+           {import.meta.env.VITE_GIT_SHA && (
+             <p className="muted settings-data-lead" style={{ marginTop: '1.5rem' }}>
+               Version: {import.meta.env.VITE_GIT_SHA}
+             </p>
+           )}
+         </div>
+       </details>
 
       <section className="mt-lg" aria-labelledby="settings-data-heading">
         <h2 id="settings-data-heading" className="section-title">
