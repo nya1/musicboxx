@@ -101,7 +101,7 @@ export function SongDetailPage() {
       })
     );
 
-async function onDeleteFromLibrary() {
+  async function onDeleteFromLibrary() {
     if (songRecord.id == null) return;
     const ok = window.confirm(
       `Remove "${songRecord.title}" from your library? This cannot be undone.`

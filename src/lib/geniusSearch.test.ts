@@ -58,7 +58,17 @@ describe('geniusSearchUrl', () => {
 
   it('does not strip non-video parentheticals', () => {
     const u = geniusSearchUrl('Track (Remastered 2024)', 'Band');
-    expect(new URL(u!).searchParams.get('q')).toBe('Band Track (Remastered 2024)');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track [Remastered 2024]');
+  });
+
+  it('does not strip (Remix 2020)', () => {
+    const u = geniusSearchUrl('Track (Remix 2020)', 'Band');
+    expect(new URL(u!).searchParams.get('q')).toBe('Band Track [Remix 2020]');
+  });
+
+  it('does not strip (Acoustic version 2020)', () => {
+    const u = geniusSearchUrl('Song (Acoustic version 2020)', 'Artist');
+    expect(new URL(u!).searchParams.get('q')).toBe('Artist Song [Acoustic version 2020]');
   });
 
   it('strips (Visual Video) from title', () => {

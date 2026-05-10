@@ -88,9 +88,9 @@ function normalizeAuthorForGenius(author: string): string {
 }
 
 const VIDEO_DESC_PAREN =
-  /\s*\(\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video)|Official)\s*\)/gi;
+  /\s*\(\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video|Live)|Official)\s*\)\s*/gi;
 const VIDEO_DESC_BRACKET =
-  /\s*\[\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video)|Official)\s*\]/gi;
+  /\s*\[\s*(?:(?:Official\s+)?(?:(?:Music\s+)?Video|Audio|Lyric\s+Video|Lyrics|Visualizer|Visual\s+Video|Visual|Performance\s+Video|Live)|Official)\s*\]\s*/gi;
 const FEAT_PAREN = /\s*\(\s*(?:feat\.|ft\.|featuring)\b[^)]*\)/gi;
 const FEAT_TAIL = /\s+(?:feat\.|ft\.|featuring)\b[\s\S]*$/i;
 
@@ -100,6 +100,7 @@ function normalizeTitleForGenius(title: string): string {
   s = s.replace(VIDEO_DESC_BRACKET, '');
   s = s.replace(FEAT_PAREN, '');
   s = s.replace(FEAT_TAIL, '');
+  s = s.replace(/\(/g, '[').replace(/\)/g, ']');
   return collapseWhitespace(s);
 }
 
